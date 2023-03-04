@@ -66,10 +66,13 @@ parser code {:
     /* Assume true at the start, but set to false with parsing errors */
     public static boolean valid = true;
 
-    public void print_error_message(int row, int col, String message){
-        System.err.println("Invalid variable declaration at line " + row + " and column " + col + " : " + message); 
+    public void print_error_message(int row, int col, String error, String message) {
+        System.err.println(error + " at line " + row + " and column " + col + ": " + message); 
     }
 
+    public void print_error_message(int row, int col, String error) {
+        System.err.println(error + " at line " + row + " and column " + col); 
+    }
 :};
 
 
@@ -88,6 +91,7 @@ non terminal DecList program, declaration_list;
 non terminal Dec declaration, function_declaration, function_prototype;
 non terminal ExpList statement_list, args, arg_list;
 non terminal Exp compound_statement, statement, expression_statement, selection_statement, iteration_statement, return_statement, expression, operation_expression, signed_factor, factor, call;
+non terminal String identifier;
 
 precedence right ELSE;
 
@@ -127,27 +131,27 @@ declaration ::=             variable_declaration:vd
                                 {: RESULT = fp; :}
                             ;
 
-variable_declaration ::=    type_specifier:ts ID:i SEMI 
+variable_declaration ::=    type_specifier:ts identifier:i SEMI 
                                 {: RESULT = new SimpleDec(tsleft, tsright, ts, i); :}
-                            | type_specifier:ts ID:i LSQUARE NUM:n RSQUARE SEMI
+                            | type_specifier:ts identifier:i LSQUARE NUM:n RSQUARE SEMI
                                 {: RESULT = new ArrayDec(tsleft, tsright, ts, i, Integer.parseInt(n)); :}
-                            | type_specifier:ts ID:i LSQUARE error:e RSQUARE SEMI
+                            | type_specifier:ts identifier:i LSQUARE error:e RSQUARE SEMI
                                 {: 
                                     RESULT = null;
-                                    print_error_message(eleft, eright, "Invalid size");
+                                    print_error_message(eleft, eright, "Invalid variable declaration", "Invalid size");
                                 :}
-                            | type_specifier:ts ID:i error:e
+                            | type_specifier:ts identifier:i error:e
                                 {:  
                                     RESULT = null;
-                                    print_error_message(eleft, eright, "Missing ;");
+                                    print_error_message(eleft, eright, "Invalid variable declaration", "Missing ;");
                                 :}
                             ;
 
-function_declaration ::=    type_specifier:ts ID:i LPAREN params:p RPAREN compound_statement:cs
+function_declaration ::=    type_specifier:ts identifier:i LPAREN params:p RPAREN compound_statement:cs
                                 {: RESULT = new FunctionDec(tsleft, tsright, ts, i, p, cs); :}
                             ;
 
-function_prototype ::=      type_specifier:ts ID:i LPAREN params:p RPAREN SEMI
+function_prototype ::=      type_specifier:ts identifier:i LPAREN params:p RPAREN SEMI
                                 {: RESULT = new FunctionDec(tsleft, tsright, ts, i, p, new NilExp(0, 0)); :}
                             ;
 
@@ -208,9 +212,9 @@ statement_list ::=          statement_list:sl statement:s
                                 {: RESULT = new ExpList(new NilExp(0, 0), null); :}
                             ;
 
-param ::=                   type_specifier:ts ID:i
+param ::=                   type_specifier:ts identifier:i
                                 {: RESULT = new SimpleDec(tsleft, tsright, ts, i); :}
-                            | type_specifier:ts ID:i LSQUARE RSQUARE
+                            | type_specifier:ts identifier:i LSQUARE RSQUARE
                                 {: RESULT = new ArrayDec(tsleft, tsright, ts, i, -1); :} // CFG doesnt match C- spec given
                             ;
 
@@ -254,9 +258,9 @@ expression ::=              variable:v ASSIGN expression:e
                                 {: RESULT = obe; :}
                             ;
 
-variable ::=                ID:i
+variable ::=                identifier:i
                                 {: RESULT = new SimpleVar(ileft, iright, i); :}
-                            | ID:i LSQUARE expression:e RSQUARE
+                            | identifier:i LSQUARE expression:e RSQUARE
                                 {: RESULT = new IndexVar(ileft, iright, i, e); :}
                             ;
 
@@ -308,7 +312,7 @@ factor ::=                  LPAREN expression:e RPAREN
                                 {: RESULT = new BoolExp(tleft, tright, Boolean.parseBoolean(t)); :}
                             ;
 
-call ::=                    ID:i LPAREN args:a RPAREN
+call ::=                    identifier:i LPAREN args:a RPAREN
                                 {: RESULT = new CallExp(ileft, iright, i, a); :}
                             ;
 
@@ -329,4 +333,13 @@ arg_list ::=                arg_list:al COMMA expression:e
                                 :}
                             | expression:e
                                 {: RESULT = new ExpList(e, null); :}
+                            ;
+
+identifier ::=              ID:i
+                                {: RESULT = i; :}
+                            | error:e
+                                {: 
+                                    print_error_message(eleft, eright, "Invalid identifier");
+                                    RESULT = ""; 
+                                :}
                             ;
