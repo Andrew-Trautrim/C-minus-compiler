@@ -66,8 +66,13 @@ parser code {:
     /* Assume true at the start, but set to false with parsing errors */
     public static boolean valid = true;
 
+<<<<<<< HEAD
     public void print_error_message(int row, int col, String error, String message) {
         System.err.println(error + " at line " + row + " and column " + col + ": " + message); 
+=======
+    public void print_error_message(int row, int col, String error, String message){
+        System.err.println(error + " at line " + row + " and column " + col + " : " + message); 
+>>>>>>> temp
     }
 
     public void print_error_message(int row, int col, String error) {
@@ -135,14 +140,34 @@ variable_declaration ::=    type_specifier:ts identifier:i SEMI
                                 {: RESULT = new SimpleDec(tsleft, tsright, ts, i); :}
                             | type_specifier:ts identifier:i LSQUARE NUM:n RSQUARE SEMI
                                 {: RESULT = new ArrayDec(tsleft, tsright, ts, i, Integer.parseInt(n)); :}
+<<<<<<< HEAD
                             | type_specifier:ts identifier:i LSQUARE error:e RSQUARE SEMI
+=======
+                            | type_specifier ID LSQUARE error:e RSQUARE SEMI
+>>>>>>> temp
                                 {: 
                                     RESULT = null;
                                     print_error_message(eleft, eright, "Invalid variable declaration", "Invalid size");
                                 :}
+<<<<<<< HEAD
                             | type_specifier:ts identifier:i error:e
                                 {:  
                                     RESULT = null;
+=======
+                            | type_specifier ID LSQUARE error:e SEMI
+                                {:  
+                                    RESULT = null;
+                                    print_error_message(eleft, eright, "Invalid variable declaration", "Missing right bracket");
+                                :}
+                            | type_specifier ID error:e RSQUARE SEMI
+                                {:  
+                                    RESULT = null;
+                                    print_error_message(eleft, eright, "Invalid variable declaration", "Missing left bracket");
+                                :}
+                            | type_specifier ID error:e
+                                {:  
+                                    RESULT = null;
+>>>>>>> temp
                                     print_error_message(eleft, eright, "Invalid variable declaration", "Missing ;");
                                 :}
                             ;
@@ -154,6 +179,11 @@ function_declaration ::=    type_specifier:ts identifier:i LPAREN params:p RPARE
 function_prototype ::=      type_specifier:ts identifier:i LPAREN params:p RPAREN SEMI
                                 {: RESULT = new FunctionDec(tsleft, tsright, ts, i, p, new NilExp(0, 0)); :}
                             ;
+
+paren_params ::=            LPAREN params:p RPAREN
+                            {: 
+                            
+                            :}
 
 type_specifier ::=          BOOL:b
                                 {: RESULT = new NameTy(bleft, bright, NameTy.BOOL); :}
