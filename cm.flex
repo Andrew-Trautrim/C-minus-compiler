@@ -96,7 +96,7 @@ comment = "/*"[^"*/"]*"*/"
 ">="                 { return symbol(sym.GEQ); }
 "=="                 { return symbol(sym.EQ); }
 "!="                 { return symbol(sym.NEQ); }
-"~"                  { return symbol(sym.TILDE); }
+"~"                  { return symbol(sym.NOT); }
 "||"                 { return symbol(sym.OR); }
 "&&"                 { return symbol(sym.AND); }
 "="                  { return symbol(sym.ASSIGN); }
@@ -108,9 +108,9 @@ comment = "/*"[^"*/"]*"*/"
 "]"                  { return symbol(sym.RSQUARE); }
 "{"                  { return symbol(sym.LCURLY); }
 "}"                  { return symbol(sym.RCURLY); }
+{truth}              { return symbol(sym.TRUTH, yytext()); }
 {identifier}         { return symbol(sym.ID, yytext()); }        
 {number}             { return symbol(sym.NUM, yytext()); }
-{truth}              { return symbol(sym.TRUTH, yytext()); }
 {whitespace}         { /* skip whitespace */ }
 {comment}            { /* skip comments */ }
 .                    { return symbol(sym.ERROR); }

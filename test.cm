@@ -1,0 +1,25 @@
+int main(void) {
+  int x; 
+  int fac;
+
+  ;
+
+  x = input();
+  fac = 1;
+  while (x > 1) {
+    fac = fac * x;
+    x = x - 1;
+  }
+
+  return output(fac);
+}
+
+int _this_is_a_function(int a, bool b) {
+    if (a == b) {
+        return a;
+    }
+
+    if (a > b) return 0;
+    
+    return 5;
+}

@@ -67,243 +67,263 @@ parser code {:
     public static boolean valid = true;
 
 :};
-   
+
 
 /* ------------Terminals and Non Terminals----------- */
-   
+
 terminal BOOL, ELSE, IF, INT, RETURN, VOID, WHILE;
-terminal PLUS, MINUS, TIMES, DIVIDE, LT, LEQ, GT, GEQ, EQ, NEQ, TILDE, OR, AND, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, LSQUARE, RSQUARE, LCURLY, RCURLY;
+terminal PLUS, MINUS, TIMES, DIVIDE, LT, LEQ, GT, GEQ, EQ, NEQ, NOT, OR, AND, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, LSQUARE, RSQUARE, LCURLY, RCURLY;
 terminal String ID, NUM, TRUTH;
 terminal ERROR;
 
-non terminal ExpList program, declaration_list;
+non terminal NameTy type_specifier;
+non terminal VarDecList params, param_list, local_declarations;
+non terminal VarDec param, variable_declaration;
+non terminal Var variable;
+non terminal DecList program, declaration_list;
+non terminal Dec declaration, function_declaration, function_prototype;
+non terminal ExpList statement_list, args, arg_list;
+non terminal Exp compound_statement, statement, expression_statement, selection_statement, iteration_statement, return_statement, expression, or_bool_expression, and_bool_expression, ubool_expression, simple_expression, additive_expression, term, signed_factor, factor, call;
 
 /* ----------------------------Context Free Grammar-------------------- */
-   
+
 start with program;
 
-program ::= {: RESULT = new ExpList(null, null); :};
+program ::=                 declaration_list:dl
+                                {: RESULT = dl; :}
+                            ;
 
-// program ::= declaration_list:dl
-//             {: RESULT = dl; :}
-//             ;
+declaration_list ::=        declaration_list:dl declaration:d
+                                {:
+                                    DecList t = dl;
+                                    while (t.tail != null) {
+                                        t = t.tail;
+                                    }
+                                    t.tail = new DecList(d, null);
+                                    RESULT = dl;
+                                :}
+                            | declaration:d
+                                {: RESULT = new DecList(d, null); :}
+                            ;
 
-// declaration_list ::=  declaration_list:dl declaration:d
-//                       {:  ExpList t = dl;
-//                           while (t.tail != null) {
-//                             t = t.tail;
-//                           }
-//                           t.tail = new ExpList(d, null);
-//                           RESULT = dl;
-//                       :}
-//                     | declaration:d
-//                       {: RESULT = new ExpList(d, null) :}
-//                     ;
+declaration ::=             variable_declaration:vd
+                                {: RESULT = vd; :}
+                            | function_declaration:fd
+                                {: RESULT = fd; :}
+                            | function_prototype:fp
+                                {: RESULT = fp; :}
+                            ;
 
-// declaration ::=   variable_declaration:vd
-//                   {: RESULT= = vd; :}
-//                 | function_declaration:fd
-//                   {: RESULT = fd; :}
-//                 | function_prototype:fp
-//                   {: RESULT = fp; :}
-//                 ;
+variable_declaration ::=    type_specifier:ts ID:i SEMI 
+                                {: RESULT = new SimpleDec(tsleft, tsright, ts, i); :}
+                            | type_specifier:ts ID:i LSQUARE NUM:n RSQUARE SEMI
+                                {: RESULT = new ArrayDec(tsleft, tsright, ts, i, Integer.parseInt(n)); :}
+                            ;
 
-// variable_declaration ::=  type_specifier:ts ID SEMI 
-//                         | type_specifier:ts ID LSQUARE NUM RSQUARE SEMI
-//                         ;
+function_declaration ::=    type_specifier:ts ID:i LPAREN params:p RPAREN compound_statement:cs
+                                {: RESULT = new FunctionDec(tsleft, tsright, ts, i, p, cs); :}
+                            ;
 
-// function_declaration ::=  type_specifier:ts ID LPAREN params:p RPAREN compound_statement:cs
-//                         ;
+function_prototype ::=      type_specifier:ts ID:i LPAREN params:p RPAREN SEMI
+                                {: RESULT = new FunctionDec(tsleft, tsright, ts, i, p, new NilExp(0, 0)); :}
+                            ;
 
-// function_prototype ::=  type_specifier:ts ID LPAREN params:p RPAREN SEMI
-//                       ;
+type_specifier ::=          BOOL:b
+                                {: RESULT = new NameTy(bleft, bright, NameTy.BOOL); :}
+                            | INT:i 
+                                {: RESULT = new NameTy(ileft, iright, NameTy.INT); :}
+                            | VOID:v
+                                {: RESULT = new NameTy(vleft, vright, NameTy.VOID); :}
+                            ;
 
-// type_specifier ::=  BOOL
-//                   | INT 
-//                   | VOID
-//                   ;
+params ::=                  param_list:pl
+                                {: RESULT = pl; :}
+                            | VOID:v
+                                {: RESULT = new VarDecList(null, null); :}
+                            ;
 
-// params ::=  param_list:pl
-//             {: RESULT = pl; :}
-//           | VOID
-//           ;
+compound_statement ::=      LCURLY:l local_declarations:ld statement_list:sl RCURLY
+                                {: RESULT = new CompoundExp(lleft, lright, ld, sl); :}
+                            ;
 
-// compound_statement ::=  LCURLY local_declarations:ld statement_list:sl RCURLY
-//                       ;
+param_list ::=              param_list:pl COMMA param:p 
+                                {:  
+                                    VarDecList t = pl;
+                                    while (t.tail != null) {
+                                        t = t.tail;
+                                    }
+                                    t.tail = new VarDecList(p, null);
+                                    RESULT = pl;
+                                :}
+                            | param:p
+                                {: RESULT = new VarDecList(p, null); :}
+                            ;
 
-// param_list ::=  param_list:pl COMMA param:p 
-//               | param:p
-//                 {: RESULT = p; :}
-//               ;
+local_declarations ::=      local_declarations:ld variable_declaration:vd 
+                                {:  
+                                    VarDecList t = ld;
+                                    while (t.tail != null) {
+                                        t = t.tail;
+                                    }
+                                    t.tail = new VarDecList(vd, null);
+                                    RESULT = ld;
+                                :}
+                            | 
+                                {: RESULT = new VarDecList(null, null); :}
+                            ;
 
-// local_declarations ::=  local_declarations:ld variable_declaration:vd 
-//                       | 
-//                       ;
+statement_list ::=          statement_list:sl statement:s 
+                                {:  
+                                    ExpList t = sl;
+                                    while (t.tail != null) {
+                                        t = t.tail;
+                                    }
+                                    t.tail = new ExpList(s, null);
+                                    RESULT = sl;
+                                :}
+                            | 
+                                {: RESULT = new ExpList(null, null); :}
+                            ;
 
-// statement_list ::=  statement_list:sl statement:s 
-//                     {:  ExpList t = sl;
-//                         while (t.tail != null) {
-//                           t = t.tail;
-//                         }
-//                         t.tail = new ExpList(d, null);
-//                         RESULT = dl;
-//                     :}
-//                   | 
-//                   ;
+param ::=                   type_specifier:ts ID:i
+                                {: RESULT = new SimpleDec(tsleft, tsright, ts, i); :}
+                            | type_specifier:ts ID:i LSQUARE RSQUARE
+                                {: RESULT = new ArrayDec(tsleft, tsright, ts, i, -1); :} // CFG doesnt match Ci spec given
+                            ;
 
-// param ::=   type_specifier:ts ID 
-//           | type_specifier:ts ID LSQUARE RSQUARE
-//           ;
+statement ::=               expression_statement:es 
+                                {: RESULT = es; :}
+                            | compound_statement:cs 
+                                {: RESULT = cs; :}
+                            | selection_statement:ss 
+                                {: RESULT = ss; :}
+                            | iteration_statement:is 
+                                {: RESULT = is; :}
+                            | return_statement:rs
+                                {: RESULT = rs; :}
+                            ;
 
-// statement ::=   expression_statement:es 
-//                 {: RESULT = es; :}
-//               | compound_statement:cs 
-//                 {: RESULT = cs; :}
-//               | selection_statement:ss 
-//                 {: RESULT = ss; :}
-//               | iteration_statement:is 
-//                 {: RESULT = is; :}
-//               | return_statement:rs
-//                 {: RESULT = rs; :}
-//               ;
+expression_statement ::=    expression:e SEMI 
+                                {: RESULT = e; :}
+                            | SEMI
+                                {: RESULT = new NilExp(0, 0); :}
+                            ;
 
-// expression_statement ::=  expression:e SEMI 
-//                         | SEMI
-//                         ;
+selection_statement ::=     IF:i LPAREN expression:e RPAREN statement:s
+                                {: RESULT = new IfExp(ileft, iright, e, s, null); :}
+                            | IF:i LPAREN expression:e RPAREN statement:s1 ELSE statement:s2
+                                {: RESULT = new IfExp(ileft, iright, e, s1, s2); :}
+                            ;
 
-// selection_statement ::=   IF:i LPAREN expression:e RPAREN statement:s
-//                           {: RESULT = new IfExp(ileft, iright, e, s, null); :}
-//                         | IF:i LPAREN expression:e RPAREN statement:s1 ELSE statement:s2
-//                           {: RESULT = new IfExp(ileft, iright, e, s1, s2); :}
-//                         ;
+iteration_statement ::=     WHILE:w LPAREN expression:e RPAREN statement:s
+                                {: RESULT = new WhileExp(wleft, wright, e, s); :}
+                            ;
 
-// iteration_statement ::=   WHILE:w LPAREN expression:e RPAREN statement:s
-//                           {: RESULT = new WhileExp(wleft, wright, e, s) :}
-//                         ;
+return_statement ::=        RETURN:r expression:e SEMI 
+                                {: RESULT = new ReturnExp(rleft, rright, e); :}
+                            | RETURN:r SEMI
+                                {: RESULT = new ReturnExp(rleft, rright, null); :}
+                            ;
 
-// return_statement ::=  RETURN:r expression:e SEMI 
-//                       {: RESULT = new ReturnExp(rleft, rright, e) :}
-//                     | RETURN SEMI
-//                       {: RESULT = new ReturnExp(rleft, rright, null) :}
-//                     ;
+expression ::=              variable:v ASSIGN expression:e 
+                                {: RESULT = new AssignExp(vleft, vright, new VarExp(vleft, vright, v), e); :}
+                            | or_bool_expression:obe
+                                {: RESULT = obe; :}
+                            ;
 
-// expression ::=  variable:v ASSIGN expression:e 
-//                 {: RESULT = new AssignExp(vleft, vright, v, e); :}
-//               | or_bool_expression:obe
-//                 {: RESULT = obe; :}
-//               ;
+variable ::=                ID:i
+                                {: RESULT = new SimpleVar(ileft, iright, i); :}
+                            | ID:i LSQUARE expression:e RSQUARE
+                                {: RESULT = new IndexVar(ileft, iright, i, e); :}
+                            ;
 
-// variable ::=  ID:i
-//               {: RESULT = new VarExp(ileft, iright, i) :}
-//             | ID LSQUARE expression:e RSQUARE
-//             ;
+or_bool_expression ::=      or_bool_expression:obe OR and_bool_expression:abe
+                                {: RESULT = new OpExp(obeleft, oberight, obe, OpExp.OR, abe); :}
+                            | and_bool_expression:abe
+                                {: RESULT = abe; :}
+                            ;
 
-// or_bool_expression ::=  or_bool_expression:obe OR and_bool_expression:abe
-//                       | and_bool_expression:abe
-//                         {: RESULT = abe; :}
-//                       ;
+and_bool_expression ::=     and_bool_expression:abe AND ubool_expression:ube
+                                {: RESULT = new OpExp(abeleft, aberight, abe, OpExp.AND, ube); :}
+                            | ubool_expression:ube
+                                {: RESULT = ube; :}
+                            ;
 
-// and_bool_expression ::=   and_bool_expression:abe AND ubool_expression:ube
-//                         | ubool_expression:ube
-//                         ;
+ubool_expression ::=        NOT ubool_expression:ube
+                                {: RESULT = new OpExp(ubeleft, uberight, new NilExp(0,0), OpExp.NOT, ube); :}
+                            | simple_expression:se
+                                {: RESULT = se; :}
+                            ;
 
-// ubool_expression ::=  TILDE ubool_expression:ube
-//                     | simple_expression:se
-//                       {: RESULT = se; :}
-//                     ;
+simple_expression ::=       additive_expression:ae1 LT additive_expression:ae2
+                                {: RESULT = new OpExp(ae1left, ae1right, ae1, OpExp.LT, ae2); :}
+                            | additive_expression:ae1 LEQ additive_expression:ae2
+                                {: RESULT = new OpExp(ae1left, ae1right, ae1, OpExp.LEQ, ae2); :}
+                            | additive_expression:ae1 EQ additive_expression:ae2
+                                {: RESULT = new OpExp(ae1left, ae1right, ae1, OpExp.EQ, ae2); :}
+                            | additive_expression:ae1 NEQ additive_expression:ae2
+                                {: RESULT = new OpExp(ae1left, ae1right, ae1, OpExp.NEQ, ae2); :}
+                            | additive_expression:ae1 GT additive_expression:ae2
+                                {: RESULT = new OpExp(ae1left, ae1right, ae1, OpExp.GT, ae2); :}
+                            | additive_expression:ae1 GEQ additive_expression:ae2
+                                {: RESULT = new OpExp(ae1left, ae1right, ae1, OpExp.GEQ, ae2); :}
+                            | additive_expression:ae
+                                {: RESULT = ae; :}
+                            ;
 
-// simple_expression ::=   additive_expression:ae relop:ro additive_expression:ae 
-//                       | additive_expression:ae
-//                         {: RESULT = ae; :}
-//                       ;
+additive_expression ::=     additive_expression:ae PLUS term:t 
+                                {: RESULT = new OpExp(aeleft, aeright, ae, OpExp.PLUS, t); :}
+                            | additive_expression:ae MINUS term:t 
+                                {: RESULT = new OpExp(aeleft, aeright, ae, OpExp.MINUS, t); :}
+                            | term:t
+                                {: RESULT = t; :}
+                            ;
 
-// additive_expression ::=   additive_expression:ae addop:ao term:t 
-//                         | term:t
-//                           {: RESULT = t; :}
-//                         ;
+term ::=                    term:t TIMES signed_factor:sf
+                                {: RESULT = new OpExp(tleft, tright, t, OpExp.TIMES, sf); :}
+                            | term:t DIVIDE signed_factor:sf
+                                {: RESULT = new OpExp(tleft, tright, t, OpExp.DIVIDE, sf); :}
+                            | signed_factor:sf
+                                {: RESULT = sf; :}
+                            ;
 
-// relop ::=   LT 
-//           | LEQ 
-//           | EQ 
-//           | NEQ 
-//           | GT 
-//           | GEQ
-//           ;
+signed_factor ::=           MINUS signed_factor:sf 
+                                {: RESULT = new OpExp(sfleft, sfright, new NilExp(0, 0), OpExp.MINUS, sf); :}
+                            | factor:f
+                                {: RESULT = f; :}
+                            ;
 
-// addop ::=   PLUS 
-//           | MINUS
-//           ;
+factor ::=                  LPAREN expression:e RPAREN 
+                                {: RESULT = e; :}
+                            | variable:v
+                                {: RESULT = new VarExp(vleft, vright, v); :}
+                            | call:c
+                                {: RESULT = c; :}
+                            | NUM:n
+                                {: RESULT = new IntExp(nleft, nright, Integer.parseInt(n)); :}
+                            | TRUTH:t
+                                {: RESULT = new BoolExp(tleft, tright, Boolean.parseBoolean(t)); :}
+                            ;
 
-// term ::=  term:t mulop:mo signed_factor:sf
-//         | signed_factor:sf
-//           {: RESULT = sf; :}
-//         ;
+call ::=                    ID:i LPAREN args:a RPAREN
+                                {: RESULT = new CallExp(ileft, iright, i, a); :}
+                            ;
 
-// mulop ::=   TIMES 
-//           | DIVIDE
-//           ;
+args ::=                    arg_list:al
+                                {: RESULT = al; :}
+                            | 
+                                {: RESULT = new ExpList(null, null); :}
+                            ;
 
-// signed_factor ::=   MINUS signed_factor:sf 
-//                   | factor:f
-//                     {: RESULT = f; :}
-//                   ;
-
-// factor ::=  LPAREN expression:E RPAREN 
-//           | variable:v
-//             {: RESULT = v; :}
-//           | call:c
-//             {: RESULT = c; :}
-//           | NUM 
-//           | TRUTH
-//           ;
-
-// call ::=  ID:i LPAREN args:a RPAREN SEMI
-//           {: RESULT = new CallExp(ileft, iright, i, a) :}
-//         ;
-
-// args ::=  arg_list:al
-//           {: RESULT = al :}
-//         | 
-//         ;
-
-// arg_list ::=  arg_list:al COMMA expression:e 
-//             | expression:e
-//               {: RESULT = e; :}
-//             ;
-
-// /* CFG */
-
-// program ::= declaration_list
-// declaration_list ::= declaration_list declaration
-// declaration ::= variable_declaration | function_declaration | function_prototype
-// variable_declaration ::= type_specifier ID SEMI | type_specifier ID LSQUARE NUM RSQUARE SEMI
-// function_declaration ::= type_specifier ID LPAREN params RPAREN compound_statement
-// function_prototype ::= type_specifier ID LPAREN params RPAREN SEMI
-// type_specifier ::= BOOL | INT | VOID
-// params ::= param_list | VOID
-// compound_statement ::= LCURLY local_declarations statement_list RCURLY
-// param_list ::= param_list COMMA param | param
-// local_declarations ::= local_declarations variable_declaration | 
-// statement_list ::= statement_list statement | 
-// param ::= type_specifier ID | type_specifier ID LSQUARE RSQUARE
-// statement ::= expression_statement | compound_statement | selection_statement | iteration_statement | return_statement
-// expression_statement ::= expression SEMI | SEMI
-// selection_statement ::= IF LPAREN expression RPAREN statement | IF LPAREN expression RPAREN statement ELSE statement
-// iteration_statement ::= WHILE LPAREN expression RPAREN statement
-// return_statement ::= RETURN expression SEMI | RETURN SEMI
-// expression ::= variable ASSIGN expression | or_bool_expression
-// variable ::= ID | ID LSQUARE expression RSQUARE
-// or_bool_expression ::= or_bool_expression OR and_bool_expression | and_bool_expression
-// and_bool_expression ::= and_bool_expression AND ubool_expression
-// ubool_expression ::= TILDE ubool_expression | simple_expression
-// simple_expression ::= additive_expression relop additive_expression | additive_expression
-// additive_expression ::= additive_expression addop term | term
-// relop ::= LT | LEQ | EQ | NEQ| GT | GEQ
-// addop ::= PLUS | MINUS
-// term ::= term mulop signed_factor | signed_factor
-// mulop ::= TIMES | DIVIDE
-// signed_factor ::= MINUS signed_factor| factor
-// factor ::= LPAREN expression RPAREN | variable | call | NUM | TRUTH
-// call ::= ID LPAREN args RPAREN SEMI
-// args ::= arg_list | 
-// arg_list ::= arg_list COMMA expression | expression
+arg_list ::=                arg_list:al COMMA expression:e 
+                                {:
+                                    ExpList t = al;
+                                    while (t.tail != null) {
+                                        t = t.tail;
+                                    }
+                                    t.tail = new ExpList(e, null);
+                                    RESULT = al;
+                                :}
+                            | expression:e
+                                {: RESULT = new ExpList(e, null); :}
+                            ;
