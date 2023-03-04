@@ -72,7 +72,7 @@ parser code {:
 /* ------------Terminals and Non Terminals----------- */
 
 terminal BOOL, ELSE, IF, INT, RETURN, VOID, WHILE;
-terminal PLUS, MINUS, TIMES, DIVIDE, UMINUS, LT, LEQ, GT, GEQ, EQ, NEQ, NOT, OR, AND, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, LSQUARE, RSQUARE, LCURLY, RCURLY;
+terminal PLUS, MINUS, TIMES, DIVIDE, LT, LEQ, GT, GEQ, EQ, NEQ, NOT, OR, AND, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, LSQUARE, RSQUARE, LCURLY, RCURLY;
 terminal String ID, NUM, TRUTH;
 terminal ERROR;
 
@@ -83,11 +83,14 @@ non terminal Var variable;
 non terminal DecList program, declaration_list;
 non terminal Dec declaration, function_declaration, function_prototype;
 non terminal ExpList statement_list, args, arg_list;
-non terminal Exp compound_statement, statement, expression_statement, selection_statement, iteration_statement, return_statement, expression, or_bool_expression, and_bool_expression, ubool_expression, simple_expression, additive_expression, term, signed_factor, factor, call;
+non terminal Exp compound_statement, statement, expression_statement, selection_statement, iteration_statement, return_statement, expression, operation_expression, signed_factor, factor, call;
 
+precedence left OR;
+precedence left AND;
+precedence right NOT;
+precedence nonassoc LT, LEQ, GT, GEQ, EQ, NEQ;
 precedence left PLUS, MINUS;
 precedence left TIMES, DIVIDE;
-precedence right UMINUS;
 
 /* ----------------------------Context Free Grammar-------------------- */
 
@@ -231,7 +234,7 @@ return_statement ::=        RETURN:r expression:e SEMI
 
 expression ::=              variable:v ASSIGN expression:e 
                                 {: RESULT = new AssignExp(vleft, vright, new VarExp(vleft, vright, v), e); :}
-                            | or_bool_expression:obe
+                            | operation_expression:obe
                                 {: RESULT = obe; :}
                             ;
 
@@ -241,52 +244,32 @@ variable ::=                ID:i
                                 {: RESULT = new IndexVar(ileft, iright, i, e); :}
                             ;
 
-or_bool_expression ::=      or_bool_expression:obe OR and_bool_expression:abe
-                                {: RESULT = new OpExp(obeleft, oberight, obe, OpExp.OR, abe); :}
-                            | and_bool_expression:abe
-                                {: RESULT = abe; :}
-                            ;
-
-and_bool_expression ::=     and_bool_expression:abe AND ubool_expression:ube
-                                {: RESULT = new OpExp(abeleft, aberight, abe, OpExp.AND, ube); :}
-                            | ubool_expression:ube
-                                {: RESULT = ube; :}
-                            ;
-
-ubool_expression ::=        NOT ubool_expression:ube
-                                {: RESULT = new OpExp(ubeleft, uberight, new NilExp(0,0), OpExp.NOT, ube); :}
-                            | simple_expression:se
-                                {: RESULT = se; :}
-                            ;
-
-simple_expression ::=       additive_expression:ae1 LT additive_expression:ae2
-                                {: RESULT = new OpExp(ae1left, ae1right, ae1, OpExp.LT, ae2); :}
-                            | additive_expression:ae1 LEQ additive_expression:ae2
-                                {: RESULT = new OpExp(ae1left, ae1right, ae1, OpExp.LEQ, ae2); :}
-                            | additive_expression:ae1 EQ additive_expression:ae2
-                                {: RESULT = new OpExp(ae1left, ae1right, ae1, OpExp.EQ, ae2); :}
-                            | additive_expression:ae1 NEQ additive_expression:ae2
-                                {: RESULT = new OpExp(ae1left, ae1right, ae1, OpExp.NEQ, ae2); :}
-                            | additive_expression:ae1 GT additive_expression:ae2
-                                {: RESULT = new OpExp(ae1left, ae1right, ae1, OpExp.GT, ae2); :}
-                            | additive_expression:ae1 GEQ additive_expression:ae2
-                                {: RESULT = new OpExp(ae1left, ae1right, ae1, OpExp.GEQ, ae2); :}
-                            | additive_expression:ae
-                                {: RESULT = ae; :}
-                            ;
-
-additive_expression ::=     additive_expression:ae PLUS term:t 
-                                {: RESULT = new OpExp(aeleft, aeright, ae, OpExp.PLUS, t); :}
-                            | additive_expression:ae MINUS term:t 
-                                {: RESULT = new OpExp(aeleft, aeright, ae, OpExp.MINUS, t); :}
-                            | term:t
-                                {: RESULT = t; :}
-                            ;
-
-term ::=                    term:t TIMES signed_factor:sf
-                                {: RESULT = new OpExp(tleft, tright, t, OpExp.TIMES, sf); :}
-                            | term:t DIVIDE signed_factor:sf
-                                {: RESULT = new OpExp(tleft, tright, t, OpExp.DIVIDE, sf); :}
+operation_expression ::=    operation_expression:oe1 OR operation_expression:oe2
+                                {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.OR, oe2); :}
+                            | operation_expression:oe1 AND operation_expression:oe2
+                                {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.AND, oe2); :}
+                            | NOT operation_expression:oe
+                                {: RESULT = new OpExp(oeleft, oeright, new NilExp(0,0), OpExp.NOT, oe); :}
+                            | operation_expression:oe1 LT operation_expression:oe2
+                                {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.LT, oe2); :}
+                            | operation_expression:oe1 LEQ operation_expression:oe2
+                                {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.LEQ, oe2); :}
+                            | operation_expression:oe1 EQ operation_expression:oe2
+                                {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.EQ, oe2); :}
+                            | operation_expression:oe1 NEQ operation_expression:oe2
+                                {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.NEQ, oe2); :}
+                            | operation_expression:oe1 GT operation_expression:oe2
+                                {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.GT, oe2); :}
+                            | operation_expression:oe1 GEQ operation_expression:oe2
+                                {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.GEQ, oe2); :}
+                            | operation_expression:oe1 PLUS operation_expression:oe2
+                                {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.PLUS, oe2); :}
+                            | operation_expression:oe1 MINUS operation_expression:oe2
+                                {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.MINUS, oe2); :}
+                            | operation_expression:oe1 TIMES operation_expression:oe2
+                                {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.TIMES, oe2); :}
+                            | operation_expression:oe1 DIVIDE operation_expression:oe2
+                                {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.DIVIDE, oe2); :}
                             | signed_factor:sf
                                 {: RESULT = sf; :}
                             ;
