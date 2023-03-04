@@ -1,0 +1,12 @@
+int main(void) {
+    int a;
+    int b;
+    int i;
+
+
+    a = input();
+    b = input();
+    if (a != b) if (a > b) i = 0; else i = 1; 
+
+    return -1;
+}

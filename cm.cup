@@ -85,6 +85,8 @@ non terminal Dec declaration, function_declaration, function_prototype;
 non terminal ExpList statement_list, args, arg_list;
 non terminal Exp compound_statement, statement, expression_statement, selection_statement, iteration_statement, return_statement, expression, operation_expression, signed_factor, factor, call;
 
+precedence right ELSE;
+
 precedence left OR;
 precedence left AND;
 precedence right NOT;
