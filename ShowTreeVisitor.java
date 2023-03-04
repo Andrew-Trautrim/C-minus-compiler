@@ -5,12 +5,12 @@ public class ShowTreeVisitor implements AbsynVisitor {
     final static int SPACES = 4;
 
     private void indent( int level ) {
-        for( int i = 0; i < level * SPACES; i++ ) System.out.print( " " );
+        for ( int i = 0; i < level * SPACES; i++ ) System.out.print( " " );
     }
 
     public void visit( ExpList expList, int level ) {
-        while( expList != null ) {
-            if (expList.head != null) {
+        while ( expList != null ) {
+            if ( expList.head != null ) {
                 expList.head.accept( this, level );
             }
             expList = expList.tail;
@@ -19,7 +19,20 @@ public class ShowTreeVisitor implements AbsynVisitor {
 
     public void visit( NameTy exp, int level ) {
         indent( level );
-        System.out.println( "NameTy: " + exp.type );
+        System.out.print( "NameTy:" );
+        switch( exp.type ) {
+          case NameTy.BOOL:
+            System.out.println( " bool " );
+            break;
+          case NameTy.INT:
+            System.out.println( " int " );
+            break;
+          case NameTy.VOID:
+            System.out.println( " void " );
+            break;
+        default:
+            System.out.println( "Unrecognized type at line " + exp.row + " and column " + exp.col);
+        }
     }
 
     public void visit( SimpleVar exp, int level ) {
@@ -34,8 +47,7 @@ public class ShowTreeVisitor implements AbsynVisitor {
     }
 
     public void visit( NilExp exp, int level ) {
-        indent( level );
-        System.out.println("NilExp");
+        // don't display anything for NilExp since it's empty
     }
 
     public void visit( IntExp exp, int level ) {
@@ -64,41 +76,50 @@ public class ShowTreeVisitor implements AbsynVisitor {
         indent( level );
         System.out.print( "OpExp:" ); 
         switch( exp.op ) {
-          case OpExp.PLUS:
-            System.out.println( " + " );
-            break;
-          case OpExp.MINUS:
-            System.out.println( " - " );
-            break;
-          case OpExp.TIMES:
-            System.out.println( " * " );
-            break;
-          case OpExp.EQ:
-            System.out.println( " == " );
-            break;
-          case OpExp.LT:
-            System.out.println( " < " );
-            break;
+            case OpExp.PLUS:
+                System.out.println( " + " );
+                break;
+            case OpExp.MINUS:
+                System.out.println( " - " );
+                break;
+            case OpExp.UMINUS:
+                System.out.println( " - " );
+                break;
+            case OpExp.TIMES:
+                System.out.println( " * " );
+                break;
+            case OpExp.DIVIDE:
+                System.out.println( " / " );
+                break;
+            case OpExp.EQ:
+                System.out.println( " == " );
+                break;
+            case OpExp.NEQ:
+                System.out.println( " != " );
+                break;
+            case OpExp.LT:
+                System.out.println( " < " );
+                break;
             case OpExp.LEQ:
-              System.out.println( " <= " );
-              break;
-          case OpExp.GT:
-            System.out.println( " > " );
-            break;
-        case OpExp.GEQ:
-            System.out.println( " >= " );
-            break;
-        case OpExp.NOT:
-            System.out.println( " ~ " );
-            break;
-        case OpExp.AND:
-            System.out.println( " && " );
-            break;
-        case OpExp.OR:
-            System.out.println( " || " );
-            break;
-        default:
-            System.out.println( "Unrecognized operator at line " + exp.row + " and column " + exp.col);
+                System.out.println( " <= " );
+                break;
+            case OpExp.GT:
+                System.out.println( " > " );
+                break;
+            case OpExp.GEQ:
+                System.out.println( " >= " );
+                break;
+            case OpExp.NOT:
+                System.out.println( " ~ " );
+                break;
+            case OpExp.AND:
+                System.out.println( " && " );
+                break;
+            case OpExp.OR:
+                System.out.println( " || " );
+                break;
+            default:
+                System.out.println( "Unrecognized operator at line " + exp.row + " and column " + exp.col);
         }
         level++;
         if ( exp.left != null )
@@ -150,6 +171,7 @@ public class ShowTreeVisitor implements AbsynVisitor {
         indent( level );
         System.out.println( "FunctionDec: " + exp.func);
         level++;
+        exp.result.accept( this, level );
         exp.params.accept( this, level );
         exp.body.accept( this, level );
     }
@@ -162,12 +184,12 @@ public class ShowTreeVisitor implements AbsynVisitor {
 
     public void visit( ArrayDec exp, int level ) {
         indent( level );
-        System.out.println( "ArrayDec: " + exp.name + "[" + exp.size + "]");
+        System.out.println( "ArrayDec: " + exp.name + "[" + (exp.size != -1 ? exp.size : "") + "]");
         exp.type.accept( this, ++level );
     }
 
     public void visit( DecList expList, int level ) {
-        while( expList != null ) {
+        while ( expList != null ) {
             if (expList.head != null) {
                 expList.head.accept( this, level );
             }
@@ -176,7 +198,7 @@ public class ShowTreeVisitor implements AbsynVisitor {
     }
 
     public void visit( VarDecList expList, int level ) {
-        while( expList != null ) {
+        while ( expList != null ) {
             if (expList.head != null) {
                 expList.head.accept( this, level );
             }

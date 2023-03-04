@@ -72,7 +72,7 @@ parser code {:
 /* ------------Terminals and Non Terminals----------- */
 
 terminal BOOL, ELSE, IF, INT, RETURN, VOID, WHILE;
-terminal PLUS, MINUS, TIMES, DIVIDE, LT, LEQ, GT, GEQ, EQ, NEQ, NOT, OR, AND, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, LSQUARE, RSQUARE, LCURLY, RCURLY;
+terminal PLUS, MINUS, TIMES, DIVIDE, UMINUS, LT, LEQ, GT, GEQ, EQ, NEQ, NOT, OR, AND, ASSIGN, SEMI, COMMA, LPAREN, RPAREN, LSQUARE, RSQUARE, LCURLY, RCURLY;
 terminal String ID, NUM, TRUTH;
 terminal ERROR;
 
@@ -84,6 +84,10 @@ non terminal DecList program, declaration_list;
 non terminal Dec declaration, function_declaration, function_prototype;
 non terminal ExpList statement_list, args, arg_list;
 non terminal Exp compound_statement, statement, expression_statement, selection_statement, iteration_statement, return_statement, expression, or_bool_expression, and_bool_expression, ubool_expression, simple_expression, additive_expression, term, signed_factor, factor, call;
+
+precedence left PLUS, MINUS;
+precedence left TIMES, DIVIDE;
+precedence right UMINUS;
 
 /* ----------------------------Context Free Grammar-------------------- */
 
@@ -147,7 +151,7 @@ compound_statement ::=      LCURLY:l local_declarations:ld statement_list:sl RCU
                             ;
 
 param_list ::=              param_list:pl COMMA param:p 
-                                {:  
+                                {:
                                     VarDecList t = pl;
                                     while (t.tail != null) {
                                         t = t.tail;
@@ -182,13 +186,13 @@ statement_list ::=          statement_list:sl statement:s
                                     RESULT = sl;
                                 :}
                             | 
-                                {: RESULT = new ExpList(null, null); :}
+                                {: RESULT = new ExpList(new NilExp(0, 0), null); :}
                             ;
 
 param ::=                   type_specifier:ts ID:i
                                 {: RESULT = new SimpleDec(tsleft, tsright, ts, i); :}
                             | type_specifier:ts ID:i LSQUARE RSQUARE
-                                {: RESULT = new ArrayDec(tsleft, tsright, ts, i, -1); :} // CFG doesnt match Ci spec given
+                                {: RESULT = new ArrayDec(tsleft, tsright, ts, i, -1); :} // CFG doesnt match C- spec given
                             ;
 
 statement ::=               expression_statement:es 
@@ -288,7 +292,7 @@ term ::=                    term:t TIMES signed_factor:sf
                             ;
 
 signed_factor ::=           MINUS signed_factor:sf 
-                                {: RESULT = new OpExp(sfleft, sfright, new NilExp(0, 0), OpExp.MINUS, sf); :}
+                                {: RESULT = new OpExp(sfleft, sfright, new NilExp(0, 0), OpExp.UMINUS, sf); :}
                             | factor:f
                                 {: RESULT = f; :}
                             ;
@@ -312,7 +316,7 @@ call ::=                    ID:i LPAREN args:a RPAREN
 args ::=                    arg_list:al
                                 {: RESULT = al; :}
                             | 
-                                {: RESULT = new ExpList(null, null); :}
+                                {: RESULT = new ExpList(new NilExp(0, 0), null); :}
                             ;
 
 arg_list ::=                arg_list:al COMMA expression:e 

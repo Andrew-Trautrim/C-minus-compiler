@@ -1,0 +1,38 @@
+int complicated_expressions(int a[], int b, int n) {
+    int i;
+    int j;
+
+    if (b < 0) {
+        i = 0;
+        j = 0;
+        while (i < n && j > 0) {
+            if (a[i] / 2 != 5 && n != 0 || b == -10 && b - 5 < 100) {
+                j = j * (a[i]/(3- 4)-6*(b*42+(-b)));
+                a[i] = j;
+            }
+            i = i + 1;
+        }
+    }
+    else {
+        j = 54/(b*6/(5/(4+a[n-1])+7));
+    }
+    return j * j * a[n-1];
+}
+
+void main(void) {
+    int a[15];
+    int b;
+    int n;
+    int i;
+
+    ;
+    n = 15;
+    b = -42;
+    i = 0;
+    while (i < n) {
+        a[i] = i;
+        i = i + 1;
+    }
+
+    complicated_expressions(a, b, n);
+}
