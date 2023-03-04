@@ -66,6 +66,10 @@ parser code {:
     /* Assume true at the start, but set to false with parsing errors */
     public static boolean valid = true;
 
+    public void print_error_message(int row, int col, String message){
+        System.err.println("Invalid variable declaration at line " + row + " and column " + col + " : " + message); 
+    }
+
 :};
 
 
@@ -127,6 +131,16 @@ variable_declaration ::=    type_specifier:ts ID:i SEMI
                                 {: RESULT = new SimpleDec(tsleft, tsright, ts, i); :}
                             | type_specifier:ts ID:i LSQUARE NUM:n RSQUARE SEMI
                                 {: RESULT = new ArrayDec(tsleft, tsright, ts, i, Integer.parseInt(n)); :}
+                            | type_specifier:ts ID:i LSQUARE error:e RSQUARE SEMI
+                                {: 
+                                    RESULT = null;
+                                    print_error_message(eleft, eright, "Invalid size");
+                                :}
+                            | type_specifier:ts ID:i error:e
+                                {:  
+                                    RESULT = null;
+                                    print_error_message(eleft, eright, "Missing ;");
+                                :}
                             ;
 
 function_declaration ::=    type_specifier:ts ID:i LPAREN params:p RPAREN compound_statement:cs

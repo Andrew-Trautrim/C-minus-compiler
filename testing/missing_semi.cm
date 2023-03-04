@@ -1,0 +1,6 @@
+/* A program missing a semi-colon */
+
+void main(void) {
+    int x
+    int y;
+}
