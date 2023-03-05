@@ -1,6 +1,8 @@
 /* A program missing a semi-colon */
 
-void ma%in(void) {
+void main(void) {
     int x;
     int y;
+
+    
 }

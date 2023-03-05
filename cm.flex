@@ -70,6 +70,9 @@ truth = "false"|"true"
 lineTerminator = \r|\n|\r\n
 whitespace = {lineTerminator} | [ \t\f]
 comment = "/*"[^"*/"]*"*/"
+
+invalid_id = [0-9]+[_a-zA-Z0-9]*
+error = . | {invalid_id}
    
 %%
 /* ------------------------Lexical Rules Section---------------------- */
@@ -86,20 +89,20 @@ comment = "/*"[^"*/"]*"*/"
 "return"             { return symbol(sym.RETURN); }  
 "void"               { return symbol(sym.VOID); }  
 "while"              { return symbol(sym.WHILE); }  
-"+"                  { return symbol(sym.PLUS); }
-"-"                  { return symbol(sym.MINUS); }
-"*"                  { return symbol(sym.TIMES); }
-"/"                  { return symbol(sym.DIVIDE); }
-"<"                  { return symbol(sym.LT); }
-"<="                 { return symbol(sym.LEQ); }
-">"                  { return symbol(sym.GT); }
-">="                 { return symbol(sym.GEQ); }
-"=="                 { return symbol(sym.EQ); }
-"!="                 { return symbol(sym.NEQ); }
-"~"                  { return symbol(sym.NOT); }
-"||"                 { return symbol(sym.OR); }
-"&&"                 { return symbol(sym.AND); }
-"="                  { return symbol(sym.ASSIGN); }
+"+"                  { return symbol(sym.PLUS, yytext()); }
+"-"                  { return symbol(sym.MINUS, yytext()); }
+"*"                  { return symbol(sym.TIMES, yytext()); }
+"/"                  { return symbol(sym.DIVIDE, yytext()); }
+"<"                  { return symbol(sym.LT, yytext()); }
+"<="                 { return symbol(sym.LEQ, yytext()); }
+">"                  { return symbol(sym.GT, yytext()); }
+">="                 { return symbol(sym.GEQ, yytext()); }
+"=="                 { return symbol(sym.EQ, yytext()); }
+"!="                 { return symbol(sym.NEQ, yytext()); }
+"~"                  { return symbol(sym.NOT, yytext()); }
+"||"                 { return symbol(sym.OR, yytext()); }
+"&&"                 { return symbol(sym.AND, yytext()); }
+"="                  { return symbol(sym.ASSIGN, yytext()); }
 ";"                  { return symbol(sym.SEMI); }
 ","                  { return symbol(sym.COMMA); }
 "("                  { return symbol(sym.LPAREN); }
@@ -113,4 +116,4 @@ comment = "/*"[^"*/"]*"*/"
 {number}             { return symbol(sym.NUM, yytext()); }
 {whitespace}         { /* skip whitespace */ }
 {comment}            { /* skip comments */ }
-.                    { return symbol(sym.ERROR); }
+{error}              { return symbol(sym.ERROR, yytext()); }
