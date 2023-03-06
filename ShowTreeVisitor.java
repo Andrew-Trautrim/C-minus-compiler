@@ -179,13 +179,13 @@ public class ShowTreeVisitor implements AbsynVisitor {
     public void visit( SimpleDec exp, int level ) {
         indent( level );
         System.out.println( "SimpleDec: " + exp.name);
-        exp.type.accept( this, ++level );
+        if (exp.type != null) exp.type.accept( this, ++level );
     }
 
     public void visit( ArrayDec exp, int level ) {
         indent( level );
         System.out.println( "ArrayDec: " + exp.name + "[" + (exp.size != -1 ? exp.size : "") + "]");
-        exp.type.accept( this, ++level );
+        if (exp.type != null) exp.type.accept( this, ++level );
     }
 
     public void visit( DecList expList, int level ) {

@@ -1,7 +1,0 @@
-int main(void) {
-    int 76num;
-    int 4t[5];
-
-    if (2 => 3) {}
-    if (2 >= 3) {}
-}
