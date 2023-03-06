@@ -1,0 +1,14 @@
+int main(void) {
+    int a[10];
+    int c;
+    bool b;
+    
+    /* invalid operations */
+    a = a << 5;
+    b = false | b;
+    b = ~(a + 7 =!= 5);
+
+    /* valid operations */
+    b = ~(false && a[9] / 2 != 5 && n != 0 || b == -10 && ~(c - 5 < 100));
+    c = c * (a[i]/(3- 4)-6*(c*42+-(--c)));
+}

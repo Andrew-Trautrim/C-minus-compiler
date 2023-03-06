@@ -66,12 +66,8 @@ parser code {:
     /* Assume true at the start, but set to false with parsing errors */
     public static boolean valid = true;
 
-    public void print_error_message(int row, int col, String error, String message) {
-        System.err.println(error + " at line " + (row + 1) + " and column " + (col + 1) + ": " + message + "."); 
-    }
-
-    public void print_error_message(int row, int col, String error) {
-        System.err.println(error + " at line " + (row + 1) + " and column " + (col + 1)); 
+    public void report_error(int row, int col, String message) {
+        System.err.println("Error in line " + (row + 1) + ", column " + (col + 1) + " : " + message); 
     }
 :};
 
@@ -90,7 +86,7 @@ non terminal DecList program, declaration_list;
 non terminal Dec declaration, function_declaration, function_prototype;
 non terminal ExpList statement_list, args, arg_list;
 non terminal Exp compound_statement, statement, expression_statement, selection_statement, iteration_statement, return_statement, expression, operation_expression, signed_factor, factor, call;
-non terminal String error_sequence, identifier;
+non terminal String error_sequence;
 
 precedence right ELSE;
 precedence right ASSIGN;
@@ -102,7 +98,6 @@ precedence nonassoc LT, LEQ, GT, GEQ, EQ, NEQ;
 precedence left PLUS, MINUS;
 precedence left TIMES, DIVIDE;
 
-precedence left error;
 precedence left ERROR;
 
 /* ----------------------------Context Free Grammar-------------------- */
@@ -132,58 +127,73 @@ declaration ::=             variable_declaration:vd
                                 {: RESULT = fd; :}
                             | function_prototype:fp
                                 {: RESULT = fp; :}
+                            | error:e
+                                {: 
+                                    parser.report_error("Invalid declaration", e); 
+                                    RESULT = null;
+                                :}
                             ;
 
-variable_declaration ::=    type_specifier:ts identifier:i SEMI 
+variable_declaration ::=    type_specifier:ts ID:i SEMI 
                                 {: RESULT = new SimpleDec(tsleft, tsright, ts, i); :}
-                            | type_specifier:ts identifier:i LSQUARE NUM:n RSQUARE SEMI
+                            | type_specifier:ts ID:i LSQUARE NUM:n RSQUARE SEMI
                                 {: RESULT = new ArrayDec(tsleft, tsright, ts, i, Integer.parseInt(n)); :}
-                            | type_specifier identifier LSQUARE identifier:i RSQUARE SEMI
+                            | type_specifier ID LSQUARE ID:i RSQUARE SEMI
                                 {: 
-                                    print_error_message(ileft, iright, "Invalid variable declaration", "can't declare size with variable");
+                                    parser.report_error(ileft, iright, "Invalid array declaration, can't declare size with variable"); 
                                     RESULT = null;
                                 :}
-                            | type_specifier identifier LSQUARE error:e RSQUARE SEMI
+                            | type_specifier ID LSQUARE:l RSQUARE SEMI
                                 {: 
-                                    print_error_message(eleft, eright, "Invalid variable declaration", "invalid size");
+                                    parser.report_error(lleft, lright, "Invalid array declaration, size parameter not given"); 
                                     RESULT = null;
                                 :}
-                            | type_specifier identifier LSQUARE NUM:n SEMI
-                                {:  
-                                    print_error_message(nleft, nright, "Invalid variable declaration", "missing \']\'");
+                            | type_specifier ID LSQUARE error:e RSQUARE SEMI
+                                {: 
+                                    parser.report_error("Invalid array declaration, invalid size given", null); 
                                     RESULT = null;
                                 :}
-                            | type_specifier identifier:i NUM RSQUARE SEMI
+                            | type_specifier ID LSQUARE NUM:n SEMI
                                 {:  
-                                    print_error_message(ileft, iright, "Invalid variable declaration", "missing \'[\'");
+                                    parser.report_error(nleft, nright, "Invalid array declaration, missing \']\'"); 
+                                    RESULT = null;
+                                :}
+                            | type_specifier ID:i NUM RSQUARE SEMI
+                                {:  
+                                    parser.report_error(ileft, iright, "Invalid array declaration, missing \'[\'"); 
                                     RESULT = null;
                                 :}
                             ;
 
-function_declaration ::=    type_specifier:ts identifier:i LPAREN params:p RPAREN compound_statement:cs
+function_declaration ::=    type_specifier:ts ID:i LPAREN params:p RPAREN compound_statement:cs
                                 {: RESULT = new FunctionDec(tsleft, tsright, ts, i, p, cs); :}
-                            | type_specifier:ts identifier:i LPAREN params:p compound_statement:cs
+                            | type_specifier:ts ID:i LPAREN params:p compound_statement:cs
                                 {:
-                                    print_error_message(pleft, pright, "Invalid parenthesis", "missing \')\'");
+                                    parser.report_error(pleft, pright, "Invalid function declaration, missing \')\'"); 
                                     RESULT = null;
                                 :}
-                            | type_specifier:ts identifier:i params:p RPAREN compound_statement:cs
+                            | type_specifier:ts ID:i params:p RPAREN compound_statement:cs
                                 {:
-                                    print_error_message(pleft, pright, "Invalid parenthesis", "missing \'(\'");
+                                    parser.report_error(ileft, iright, "Invalid function declaration, missing \'(\'");
+                                    RESULT = null;
+                                :}
+                            | ID:i ID LPAREN params:p RPAREN compound_statement:cs
+                                {: 
+                                    parser.report_error(ileft, iright, "Unknown type specifier \'" + i + "\'"); 
                                     RESULT = null;
                                 :}
                             ;
 
-function_prototype ::=      type_specifier:ts identifier:i LPAREN params:p RPAREN SEMI
-                                {: RESULT = new FunctionDec(tsleft, tsright, ts, i, p, new NilExp(0, 0)); :}
-                            | type_specifier:ts identifier:i LPAREN params:p SEMI
+function_prototype ::=      type_specifier:ts ID:i LPAREN params:p RPAREN SEMI
+                                {: RESULT = new FunctionDec(tsleft, tsright, ts, i, p, new NilExp()); :}
+                            | type_specifier:ts ID:i LPAREN params:p SEMI
                                 {:
-                                    print_error_message(pleft, pright, "Invalid parenthesis", "missing \')\'");
+                                    parser.report_error(pleft, pright, "Invalid parenthesis, missing \')\'");
                                     RESULT = null;
                                 :}
-                            | type_specifier:ts identifier:i params:p RPAREN SEMI
+                            | type_specifier:ts ID:i params:p RPAREN SEMI
                                 {:
-                                    print_error_message(pleft, pright, "Invalid parenthesis", "missing \'(\'");
+                                    parser.report_error(pleft, pright, "Invalid parenthesis, missing \'(\'");
                                     RESULT = null;
                                 :}
                             ;
@@ -194,17 +204,17 @@ type_specifier ::=          BOOL:b
                                 {: RESULT = new NameTy(ileft, iright, NameTy.INT); :}
                             | VOID:v
                                 {: RESULT = new NameTy(vleft, vright, NameTy.VOID); :}
-                            | ID:i
-                                {: 
-                                    print_error_message(ileft, iright, "Unknown type specifier", "\'" + i + "\'");
-                                    RESULT = null; 
-                                :}
                             ;
 
 params ::=                  param_list:pl
                                 {: RESULT = pl; :}
                             | VOID:v
                                 {: RESULT = new VarDecList(null, null); :}
+                            | 
+                                {: 
+                                    parser.report_error("Missing function parameters", null);
+                                    RESULT = new VarDecList(null, null);
+                                :}
                             ;
 
 compound_statement ::=      LCURLY:l local_declarations:ld statement_list:sl RCURLY
@@ -247,26 +257,26 @@ statement_list ::=          statement_list:sl statement:s
                                     RESULT = sl;
                                 :}
                             | 
-                                {: RESULT = new ExpList(new NilExp(0, 0), null); :}
+                                {: RESULT = new ExpList(new NilExp(), null); :}
                             ;
 
-param ::=                   type_specifier:ts identifier:i
+param ::=                   type_specifier:ts ID:i
                                 {: RESULT = new SimpleDec(tsleft, tsright, ts, i); :}
-                            | type_specifier:ts identifier:i LSQUARE RSQUARE
+                            | type_specifier:ts ID:i LSQUARE RSQUARE
                                 {: RESULT = new ArrayDec(tsleft, tsright, ts, i, -1); :} // CFG doesnt match C- spec given
-                            | type_specifier:ts identifier:i RSQUARE
+                            | type_specifier:ts ID:i RSQUARE
                                 {: 
-                                    print_error_message(ileft, iright, "Invalid parameter declaration", "missing \'[\'");
+                                    parser.report_error(ileft, iright, "Invalid parameter declaration, missing \'[\'");
                                     RESULT = null;
                                 :}
-                            | type_specifier:ts identifier:i LSQUARE:l
+                            | type_specifier:ts ID:i LSQUARE:l
                                 {: 
-                                    print_error_message(lleft, lright, "Invalid parameter declaration", "missing \']\'");
+                                    parser.report_error(lleft, lright, "Invalid parameter declaration, missing \']\'");
                                     RESULT = null;
                                 :}
-                            | type_specifier:ts identifier:i LSQUARE NUM:n RSQUARE
+                            | type_specifier:ts ID:i LSQUARE NUM:n RSQUARE
                                 {: 
-                                    print_error_message(nleft, nright, "Invalid parameter declaration", "unnecessary size specification");
+                                    parser.report_error(nleft, nright, "Invalid parameter declaration, unnecessary size specification");
                                     RESULT = null;
                                 :}
                             ;
@@ -286,11 +296,11 @@ statement ::=               expression_statement:es
 expression_statement ::=    expression:e SEMI 
                                 {: RESULT = e; :}
                             | SEMI
-                                {: RESULT = new NilExp(0, 0); :}
+                                {: RESULT = new NilExp(); :}
                             ;
 
 selection_statement ::=     IF:i LPAREN expression:e RPAREN statement:s
-                                {: RESULT = new IfExp(ileft, iright, e, s, null); :}
+                                {: RESULT = new IfExp(ileft, iright, e, s, new NilExp()); :}
                             | IF:i LPAREN expression:e RPAREN statement:s1 ELSE statement:s2
                                 {: RESULT = new IfExp(ileft, iright, e, s1, s2); :}
                             ;
@@ -302,7 +312,7 @@ iteration_statement ::=     WHILE:w LPAREN expression:e RPAREN statement:s
 return_statement ::=        RETURN:r expression:e SEMI 
                                 {: RESULT = new ReturnExp(rleft, rright, e); :}
                             | RETURN:r SEMI
-                                {: RESULT = new ReturnExp(rleft, rright, null); :}
+                                {: RESULT = new ReturnExp(rleft, rright, new NilExp()); :}
                             ;
 
 expression ::=              variable:v ASSIGN expression:e 
@@ -311,23 +321,28 @@ expression ::=              variable:v ASSIGN expression:e
                                 {: RESULT = obe; :}
                             ;
 
-variable ::=                identifier:i
+variable ::=                ID:i
                                 {: RESULT = new SimpleVar(ileft, iright, i); :}
-                            | identifier:i LSQUARE expression:e RSQUARE
+                            | ID:i LSQUARE expression:e RSQUARE
                                 {: RESULT = new IndexVar(ileft, iright, i, e); :}
+                            | ID LSQUARE:l RSQUARE
+                                {: 
+                                    parser.report_error(lleft, lright + 1, "Missing index");
+                                    RESULT = null; 
+                                :}
                             ;
 
-operation_expression ::=    operation_expression:oe1 error:e operation_expression:oe2
+operation_expression ::=    error:e
                                 {: 
-                                    print_error_message(eleft, eright, "Invalid operation");
-                                    RESULT = new NilExp(0, 0); 
+                                    parser.report_error(eleft, eright, "Invalid operation");
+                                    RESULT = new NilExp(); 
                                 :}
                             | operation_expression:oe1 OR operation_expression:oe2
                                 {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.OR, oe2); :}
                             | operation_expression:oe1 AND operation_expression:oe2
                                 {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.AND, oe2); :}
                             | NOT operation_expression:oe
-                                {: RESULT = new OpExp(oeleft, oeright, new NilExp(0,0), OpExp.NOT, oe); :}
+                                {: RESULT = new OpExp(oeleft, oeright, new NilExp(), OpExp.NOT, oe); :}
                             | operation_expression:oe1 LT operation_expression:oe2
                                 {: RESULT = new OpExp(oe1left, oe1right, oe1, OpExp.LT, oe2); :}
                             | operation_expression:oe1 LEQ operation_expression:oe2
@@ -353,13 +368,13 @@ operation_expression ::=    operation_expression:oe1 error:e operation_expressio
                             ;
 
 signed_factor ::=           MINUS signed_factor:sf 
-                                {: RESULT = new OpExp(sfleft, sfright, new NilExp(0, 0), OpExp.UMINUS, sf); :}
+                                {: RESULT = new OpExp(sfleft, sfright, new NilExp(), OpExp.UMINUS, sf); :}
                             | factor:f
                                 {: RESULT = f; :}
                             | factor:f error_sequence:e
                                 {:
-                                    RESULT = new NilExp(0, 0);
-                                    print_error_message(eleft, eright, "Invalid sequence", "\'" + e + "\'");
+                                    RESULT = new NilExp();
+                                    parser.report_error(eleft, eright, "Invalid sequence, \'" + e + "\'");
                                 :}
                             ;
 
@@ -375,14 +390,14 @@ factor ::=                  LPAREN expression:e RPAREN
                                 {: RESULT = new BoolExp(tleft, tright, Boolean.parseBoolean(t)); :}
                             ;
 
-call ::=                    identifier:i LPAREN args:a RPAREN
+call ::=                    ID:i LPAREN args:a RPAREN
                                 {: RESULT = new CallExp(ileft, iright, i, a); :}
                             ;
 
 args ::=                    arg_list:al
                                 {: RESULT = al; :}
                             | 
-                                {: RESULT = new ExpList(new NilExp(0, 0), null); :}
+                                {: RESULT = new ExpList(new NilExp(), null); :}
                             ;
 
 arg_list ::=                arg_list:al COMMA expression:e 
@@ -402,13 +417,4 @@ error_sequence ::=          error_sequence:es ERROR:e
                                 {: RESULT = es + e; :}
                             | ERROR:e
                                 {: RESULT = e; :}
-                            ;
-
-identifier ::=              ID:i
-                                {: RESULT = i; :}
-                            | ID:i error_sequence:e
-                                {: 
-                                    print_error_message(ileft, iright, "Invalid identifier", i + e);
-                                    RESULT = "";
-                                :}
                             ;

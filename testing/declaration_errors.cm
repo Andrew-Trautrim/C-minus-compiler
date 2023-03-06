@@ -1,9 +1,0 @@
-/* A program missing a semi-colon */
-
-void main(void) {
-    int a[2;
-    int b1];
-    int c
-    int d;
-    int e[a];
-}

@@ -1,0 +1,16 @@
+/* invalid declarations */
+int a1[1 test];
+int a2[a1] ;
+int a3[];
+
+/* valid declarations */
+int a4[1];
+int v1;
+bool v2;
+
+int func1(void);
+void func2(int a, bool b) {
+    /* declarations within functions */
+    int i;
+    bool j;
+}
