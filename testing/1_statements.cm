@@ -1,0 +1,43 @@
+/* function declarations */
+int func1(void);
+int func2(int a, int b, bool c);
+void func3(int a) {}
+int func4(int a, bool b) {
+    int i;
+    int j;
+
+    /* if statements*/
+    if (true) i = 5;
+    if (a < 0) {
+        a = 0;
+    }
+    else {
+        a = a - 1;
+    }
+    if (b) if (a != 17) i = 0; else i = 1; /* dangling else */
+
+    /* while statements */
+    while (a > 0) {
+        a = a + 1;
+    }
+
+    /* return statements */
+    return i;
+    return 1 / (a + 17);
+
+    /* nested statements */
+    while (i < 24) {
+        if (j == 0) {
+            i = i - 1;
+            if (b) return -1;
+        } 
+        else {
+            j = 100;
+            while (j > i) {
+                j = j - 1;
+                if (~(j + 1 <= 5)) return i;
+            }
+            i = i + 1;
+        }
+    }
+}
