@@ -15,7 +15,7 @@ import java.io.*;
 import absyn.*;
    
 class Main {
-  public final static boolean SHOW_TREE = true;
+  public final static boolean SHOW_TREE = false;
   static public void main(String argv[]) {    
     /* Start the parser */
     try {
@@ -26,6 +26,11 @@ class Main {
          ShowTreeVisitor visitor = new ShowTreeVisitor();
          result.accept(visitor, 0); 
       }
+
+      /* Semantic Analysis */
+      SemanticAnalyzer analyzer = new SemanticAnalyzer();
+      result.accept(analyzer, 0);
+
     } catch (Exception e) {
       /* do cleanup here -- possibly rethrow e */
       e.printStackTrace();

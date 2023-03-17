@@ -9,7 +9,7 @@ public class SimpleVar extends Var {
         this.name = name;
     }
 
-    public void accept( AbsynVisitor visitor, int level ) {
-        visitor.visit( this, level );
+    public int accept( AbsynVisitor visitor, int level ) {
+        return visitor.visit( this, level );
     }
 }

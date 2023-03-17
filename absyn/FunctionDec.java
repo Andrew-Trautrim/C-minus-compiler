@@ -15,7 +15,7 @@ public class FunctionDec extends Dec {
         this.body = body;
     }
 
-    public void accept( AbsynVisitor visitor, int level ) {
-        visitor.visit( this, level );
+    public int accept( AbsynVisitor visitor, int level ) {
+        return visitor.visit( this, level );
     }
 }
