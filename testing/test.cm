@@ -1,0 +1,10 @@
+
+void func2();
+
+int func4(int a, bool b) {
+    void i;
+
+    while(~(a > 0)) {
+        a = a + i;
+    }
+}

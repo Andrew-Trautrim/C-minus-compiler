@@ -7,6 +7,7 @@ import java.util.Iterator;
 public class SemanticAnalyzer implements AbsynVisitor {
 
     private int scope;
+    private int returnType;
     private ArrayList<HashMap<String, Dec>> SymbolTable;
 
     public SemanticAnalyzer() {
@@ -22,7 +23,8 @@ public class SemanticAnalyzer implements AbsynVisitor {
             }
             expList = expList.tail;
         }
-        return 0;
+        
+        return NameTy.VOID;
     }
 
     public int visit(VarDecList expList, int level) {
@@ -32,7 +34,8 @@ public class SemanticAnalyzer implements AbsynVisitor {
             }
             expList = expList.tail;
         }
-        return 0;
+        
+        return NameTy.VOID;
     }
 
     public int visit(FunctionDec exp, int level) {
@@ -42,41 +45,53 @@ public class SemanticAnalyzer implements AbsynVisitor {
         increaseScope();
         exp.params.accept(this, level);
         if (!(exp.body instanceof NilExp)) {
-            int type;
-            type = exp.body.accept(this, level);
-            if (exp.result.type != type) {
-                reportError(exp.row, exp.col, "Return type does not match declaration.");
-            }
+            returnType = exp.result.type;
+            int type = exp.body.accept(this, level);
+            // TODO check parameter equivalence
         }
         decreaseScope();
 
         addDec(exp);
 
-        return exp.result.type;
+        return NameTy.VOID;
     }
 
     public int visit(SimpleDec exp, int level) {
         addDec(exp);
+        if (exp.type.type == NameTy.VOID) {
+            reportError(exp.row, exp.col, "Variable \'" + exp.name + "\' cannot be declared as void type.");
+        }
 
         return exp.type.type;
     }
 
     public int visit(ArrayDec exp, int level) {
         addDec(exp);
+        if (exp.type.type == NameTy.VOID) {
+            reportError(exp.row, exp.col, "Variable \'" + exp.name + "\' cannot be declared as void type.");
+        }
 
         return exp.type.type;
     }
 
     public int visit(ExpList expList, int level) {
-        int type;
+        int type = NameTy.VOID;
+        Boolean flag = false; 
 
-        type = NameTy.VOID;
         while (expList != null) {
             if (expList.head != null) {
-                type = expList.head.accept(this, level);
+                // return type is set to the first return statement seen
+                if (!flag && expList.head instanceof ReturnExp) {
+                    type = expList.head.accept(this, level);
+                    flag = !flag; // flag set to true once a return statement has been seen
+                }
+                else {
+                    expList.head.accept(this, level);
+                }
             }
             expList = expList.tail;
         }
+
         return type;
     }
     
@@ -91,12 +106,20 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
 
     public int visit(ReturnExp exp, int level) {
-        return exp.exp.accept(this, ++level);
+        int type = exp.exp.accept(this, ++level);
+        if (type != returnType) {
+            reportError(exp.row, exp.col, "Return type does not match function definition.");
+        }
+
+        return type;
     }
 
     public int visit(IfExp exp, int level) {
         level++;
-        exp.test.accept(this, level);
+        int type = exp.test.accept(this, level);
+        if (type != NameTy.BOOL) {
+            reportError(exp.test.row, exp.test.col, "If condition must be boolean type.");
+        }
 
         increaseScope();
         exp.thenpart.accept(this, level);
@@ -107,29 +130,38 @@ public class SemanticAnalyzer implements AbsynVisitor {
             exp.elsepart.accept(this, level);
             decreaseScope();
         }
-        return 0;
+        
+        return NameTy.VOID;
     }
 
     public int visit(WhileExp exp, int level) {
+
         level++;
-        exp.test.accept(this, level);
+        int type = exp.test.accept(this, level);
+        if (type != NameTy.BOOL) {
+            reportError(exp.test.row, exp.test.col, "While condition must be boolean type.");
+        }
 
         increaseScope();
         exp.body.accept(this, level);
         decreaseScope();
-        return 0;
+
+        return NameTy.VOID;
     }
 
     public int visit(CallExp exp, int level) {
+        FunctionDec func;
         int type;
         exp.args.accept(this, ++level);
 
         try {
-            type = getType(exp.func);
+            func = (FunctionDec)getDec(exp.func);
+            type = func.result.type;
+            // TODO check parameter equivalence
         }
         catch (Exception e) {
             reportError(exp.row, exp.col, e.getMessage());
-            type = NameTy.VOID;
+            type = NameTy.UNDEF;
         }
 
         return type;
@@ -138,83 +170,80 @@ public class SemanticAnalyzer implements AbsynVisitor {
     public int visit(OpExp exp, int level) {
         int ltype, rtype, type;
 
-        ltype = NameTy.VOID;
-        rtype = exp.right.accept(this, level);
-        if (exp.left != null) {
+        ltype = NameTy.UNDEF;
+        if (!(exp.left instanceof NilExp)) {
             ltype = exp.left.accept(this, level);
-            if (ltype != rtype) {
-                reportError(exp.row, exp.col, "Invalid operation, types don't match.");
-            }
         }
+        rtype = exp.right.accept(this, level);
 
         switch(exp.op) {
             case OpExp.PLUS:
-                if (ltype != NameTy.INT || rtype != NameTy.INT) 
+                if ((ltype != NameTy.UNDEF && ltype != NameTy.INT) || (rtype != NameTy.UNDEF && rtype != NameTy.INT)) 
                     reportError(exp.row, exp.col, "Left and right sides must be integer types under \'+\' operator.");
                 type = NameTy.INT;
                 break;
             case OpExp.MINUS:
-                if (ltype != NameTy.INT || rtype != NameTy.INT) 
+                if ((ltype != NameTy.UNDEF && ltype != NameTy.INT) || (rtype != NameTy.UNDEF && rtype != NameTy.INT)) 
                     reportError(exp.row, exp.col, "Left and right sides must be integer types under \'-\' operator.");
                 type = NameTy.INT;
                 break;
             case OpExp.UMINUS:
-                if (rtype != NameTy.INT) 
-                    System.err.println("Expression must be an integer type under \'-\' operator.");
+                if (rtype != NameTy.UNDEF && rtype != NameTy.INT)
+                    reportError(exp.row, exp.col, "Expression must be an integer type under \'-\' operator.");
                 type = NameTy.INT;
                 break;
             case OpExp.TIMES:
-                if (ltype != NameTy.INT || rtype != NameTy.INT) 
+                if ((ltype != NameTy.UNDEF && ltype != NameTy.INT) || (rtype != NameTy.UNDEF && rtype != NameTy.INT)) 
                     reportError(exp.row, exp.col, "Left and right sides must be integer types under \'*\' operator.");
                 type = NameTy.INT;
                 break;
             case OpExp.DIVIDE:
-                if (ltype != NameTy.INT || rtype != NameTy.INT) 
+                if ((ltype != NameTy.UNDEF && ltype != NameTy.INT) || (rtype != NameTy.UNDEF && rtype != NameTy.INT)) 
                     reportError(exp.row, exp.col, "Left and right sides must be integer types under \'/\' operator.");
                 type = NameTy.INT;
                 break;
             case OpExp.EQ:
-                if (ltype != rtype) 
+                if (ltype != NameTy.UNDEF && rtype != NameTy.UNDEF && ltype != rtype) 
                     reportError(exp.row, exp.col, "Left and right sides must match under \'==\' comparison.");
                 type = NameTy.BOOL;
                 break;
             case OpExp.NEQ:
-                if (ltype != rtype) 
+                if (ltype != NameTy.UNDEF && rtype != NameTy.UNDEF && ltype != rtype) 
                     reportError(exp.row, exp.col, "Left and right sides must match under \'!=\' comparison.");
                 type = NameTy.BOOL;
                 break;
             case OpExp.LT:
-                if (ltype != NameTy.INT || rtype != NameTy.INT) 
+                if ((ltype != NameTy.UNDEF && ltype != NameTy.INT) || (rtype != NameTy.UNDEF && rtype != NameTy.INT)) 
                     reportError(exp.row, exp.col, "Left and right sides must be integer types under \'<\' comparison.");
                 type = NameTy.BOOL;
                 break;
             case OpExp.LEQ:
-                if (ltype != NameTy.INT || rtype != NameTy.INT) 
+                if ((ltype != NameTy.UNDEF && ltype != NameTy.INT) || (rtype != NameTy.UNDEF && rtype != NameTy.INT)) 
                     reportError(exp.row, exp.col, "Left and right sides must be integer types under \'<=\' comparison.");
                 type = NameTy.BOOL;
                 break;
             case OpExp.GT:
-                if (ltype != NameTy.INT || rtype != NameTy.INT) 
+                if ((ltype != NameTy.UNDEF && ltype != NameTy.INT) || (rtype != NameTy.UNDEF && rtype != NameTy.INT)) 
                     reportError(exp.row, exp.col, "Left and right sides must be integer types under \'>\' comparison.");
                 type = NameTy.BOOL;
                 break;
             case OpExp.GEQ:
-                if (ltype != NameTy.INT || rtype != NameTy.INT) 
+                if ((ltype != NameTy.UNDEF && ltype != NameTy.INT) || (rtype != NameTy.UNDEF && rtype != NameTy.INT)) 
                     reportError(exp.row, exp.col, "Left and right sides must be integer types under \'<=\' comparison.");
                 type = NameTy.BOOL;
                 break;
             case OpExp.NOT:
-                if (rtype != NameTy.BOOL) 
-                    System.err.println("Expression must be a boolean type under \'~\' operator.");
+                if (rtype != NameTy.UNDEF && rtype != NameTy.BOOL) 
+                    reportError(exp.row, exp.col, "Expression must be a boolean type under \'~\' operator.");
                 type = NameTy.BOOL;
                 break;
             case OpExp.AND:
-                if (ltype != NameTy.BOOL || rtype != NameTy.BOOL) 
+                if ((ltype != NameTy.UNDEF && ltype != NameTy.BOOL) || (rtype != NameTy.UNDEF && rtype != NameTy.BOOL)) 
                     reportError(exp.row, exp.col, "Left and right sides must be boolean types under \'&&\' operator.");
                 type = NameTy.BOOL;
                 break;
             case OpExp.OR:
-                if (ltype != NameTy.BOOL || rtype != NameTy.BOOL) 
+                if ((ltype != NameTy.UNDEF && ltype != NameTy.BOOL) || (rtype != NameTy.UNDEF && rtype != NameTy.BOOL)) 
                     reportError(exp.row, exp.col, "Left and right sides must be boolean types under \'||\' operator.");
                 type = NameTy.BOOL;
                 break;
@@ -231,7 +260,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
         int ltype = exp.lhs.accept(this, level);
         int rtype = exp.rhs.accept(this, level);
 
-        if (ltype != rtype) {
+        if (ltype != NameTy.UNDEF && rtype != NameTy.UNDEF && ltype != rtype) {
             reportError(exp.row, exp.col, "Invalid assignment, types dont match.");
         }
 
@@ -249,7 +278,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
         }
         catch (Exception e) {
             reportError(exp.row, exp.col, e.getMessage());
-            type = NameTy.VOID;
+            type = NameTy.UNDEF;
         }
 
         return type;
@@ -323,7 +352,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
                 return s.get(var);
             }
         }
-        throw new Exception("Variable \'" + var + "\' not declared.");
+        throw new Exception("\'" + var + "\' not declared.");
     }
 
     private void addDec(Dec dec) {
@@ -332,7 +361,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
             FunctionDec prototype;
             try {
                 prototype = (FunctionDec)getDec(func.func);
-                if (prototype.body instanceof NilExp || func.body instanceof NilExp) {
+                if (!(prototype.body instanceof NilExp) || func.body instanceof NilExp) {
                     reportError(func.row, func.col, "Function \'" + func.func + "\' already declared.");
                 }
             }

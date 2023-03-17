@@ -1,0 +1,21 @@
+int func1(void);
+int func2(void);
+bool func3(void);
+
+int func1(void) {
+    int a;
+    bool b;
+
+    /* invalid comparison */
+    if (a + 7 == ~b) {
+        /* do something */
+    }
+
+    /* invalid addition */
+    a = b + 1;
+
+    /* invalid negation */
+    b = ~(a + 6);
+
+    return 0;
+}

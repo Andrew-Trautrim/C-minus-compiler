@@ -10,18 +10,18 @@
 
   where gcd.tiny is an test input file for the tiny language.
 */
-   
+import java.util.Arrays;
+import java.util.stream.*;
 import java.io.*;
 import absyn.*;
    
 class Main {
-  public final static boolean SHOW_TREE = false;
   static public void main(String argv[]) {    
     /* Start the parser */
     try {
       parser p = new parser(new Lexer(new FileReader(argv[0])));
       Absyn result = (Absyn)(p.parse().value);      
-      if (SHOW_TREE && result != null) {
+      if (Arrays.stream(argv).anyMatch("-a"::equals) && result != null) {
          System.out.println("The abstract syntax tree is:");
          ShowTreeVisitor visitor = new ShowTreeVisitor();
          result.accept(visitor, 0); 
