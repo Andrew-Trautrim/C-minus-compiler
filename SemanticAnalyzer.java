@@ -316,18 +316,14 @@ public class SemanticAnalyzer implements AbsynVisitor {
     /********** Private functions **********/
 
     private void initGlobal() {
-        NameTy inputNameTypeReturn = new NameTy(0, 0, 1);
-        NameTy inputNameTypeParams = new NameTy(0, 0, 0);
-        SimpleDec inputVarDec = new SimpleDec(0, 0, inputNameTypeParams, "in");
-        VarDecList inputVarDecList = new VarDecList(inputVarDec, null);
-        FunctionDec input = new FunctionDec(0, 0, inputNameTypeReturn, "input", inputVarDecList, new NilExp());
+        NameTy inputResult = new NameTy(0, 0, NameTy.INT);
+        VarDecList inputParams = new VarDecList(null, null);
+        FunctionDec input = new FunctionDec(0, 0, inputResult, "input", inputParams, new NilExp());
 
-        NameTy outputNameTypeReturn = new NameTy(0, 0, 0);
-        NameTy outputNameTypeParams = new NameTy(0, 0, 1);
-        SimpleDec outputVarDec = new SimpleDec(0, 0, outputNameTypeParams, "");
-        VarDecList outputVarDecList = new VarDecList(outputVarDec, null);
-        FunctionDec output = new FunctionDec(0, 0, outputNameTypeReturn, "output", outputVarDecList, new NilExp());
-    
+        NameTy outputResult = new NameTy(0, 0, NameTy.VOID);
+        VarDecList outputParams = new VarDecList(new SimpleDec(0, 0, new NameTy(0, 0, NameTy.INT), "x"), null);
+        FunctionDec output = new FunctionDec(0, 0, outputResult, "output", outputParams, new NilExp());
+
         input.accept(this, 0);
         output.accept(this, 0);
     }
