@@ -14,6 +14,8 @@ public class SemanticAnalyzer implements AbsynVisitor {
         scope = 0;
         SymbolTable = new ArrayList<HashMap<String, Dec>>();
         increaseScope();
+        initGlobal();
+        
     }
 
     public int visit(DecList expList, int level) {
@@ -312,6 +314,21 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
 
     /********** Private functions **********/
+
+    private void initGlobal() {
+        NameTy inputNameType = new NameTy(0, 0, 1);
+        SimpleDec inputVarDec = new SimpleDec(0, 0, inputNameType, "");
+        VarDecList inputVarDecList = new VarDecList(inputVarDec, null);
+        FunctionDec input = new FunctionDec(0, 0, inputNameType, "input", inputVarDecList, new NilExp());
+
+        NameTy outputNameType = new NameTy(0, 0, 1);
+        SimpleDec outputVarDec = new SimpleDec(0, 0, outputNameType, "");
+        VarDecList outputVarDecList = new VarDecList(outputVarDec, null);
+        FunctionDec output = new FunctionDec(0, 0, outputNameType, "output", outputVarDecList, new NilExp());
+    
+        input.accept(this, 0);
+        output.accept(this, 0);
+    }
 
     private void decreaseScope() {
         scope--;
