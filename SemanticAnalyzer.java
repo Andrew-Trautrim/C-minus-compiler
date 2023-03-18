@@ -1,6 +1,7 @@
 import absyn.*;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 import java.util.Iterator;
 
@@ -43,7 +44,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     public int visit(FunctionDec exp, int level) {
         level++;
         exp.result.accept(this, level);
-
+        
         increaseScope();
         exp.params.accept(this, level);
         if (!(exp.body instanceof NilExp)) {
@@ -318,11 +319,13 @@ public class SemanticAnalyzer implements AbsynVisitor {
     private void initGlobal() {
         NameTy inputResult = new NameTy(0, 0, NameTy.INT);
         VarDecList inputParams = new VarDecList(null, null);
-        FunctionDec input = new FunctionDec(0, 0, inputResult, "input", inputParams, new NilExp());
+        CompoundExp inputBody = new CompoundExp(0, 0, new VarDecList(null, null), new ExpList(null, null));
+        FunctionDec input = new FunctionDec(0, 0, inputResult, "input", inputParams, inputBody);
 
         NameTy outputResult = new NameTy(0, 0, NameTy.VOID);
         VarDecList outputParams = new VarDecList(new SimpleDec(0, 0, new NameTy(0, 0, NameTy.INT), "x"), null);
-        FunctionDec output = new FunctionDec(0, 0, outputResult, "output", outputParams, new NilExp());
+        CompoundExp outputBody = new CompoundExp(0, 0, new VarDecList(null, null), new ExpList(null, null));
+        FunctionDec output = new FunctionDec(0, 0, outputResult, "output", outputParams, outputBody);
 
         input.accept(this, 0);
         output.accept(this, 0);
