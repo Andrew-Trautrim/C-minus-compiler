@@ -21,16 +21,17 @@ class Main {
     try {
       parser p = new parser(new Lexer(new FileReader(argv[0])));
       Absyn result = (Absyn)(p.parse().value);      
-
-      /* Semantic Analysis */
-      SemanticAnalyzer analyzer = new SemanticAnalyzer();
-      result.accept(analyzer, 0);
-
       if (Arrays.stream(argv).anyMatch("-a"::equals) && result != null) {
         System.out.println("The abstract syntax tree is:");
         ShowTreeVisitor visitor = new ShowTreeVisitor();
         result.accept(visitor, 0); 
-     }
+      }
+      
+      /* Semantic Analysis */
+      SemanticAnalyzer analyzer = new SemanticAnalyzer();
+      result.accept(analyzer, 0);
+
+
 
     } catch (Exception e) {
       /* do cleanup here -- possibly rethrow e */
