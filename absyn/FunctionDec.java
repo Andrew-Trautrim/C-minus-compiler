@@ -18,4 +18,17 @@ public class FunctionDec extends Dec {
     public int accept( AbsynVisitor visitor, int level ) {
         return visitor.visit( this, level );
     }
+
+    public String toString() {
+        String param_list = "";
+        VarDecList iter = params;
+        if (iter != null && iter.head != null) {
+            param_list += iter.head.toString();
+            while (iter != null) {
+                param_list += ", " + iter.head.toString();
+                iter = iter.tail;
+            }
+        }
+        return result.toString() + " " + func + "(" + param_list + ")";
+    }
 }

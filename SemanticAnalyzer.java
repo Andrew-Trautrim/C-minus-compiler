@@ -1,24 +1,26 @@
 import absyn.*;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.ArrayList;
-import java.util.Scanner;
-import java.util.Iterator;
 
 public class SemanticAnalyzer implements AbsynVisitor {
+    
+    final static int SPACES = 4;
 
     private int scope;
     private int returnType;
+    private boolean showSymbolTable;
     private ArrayList<HashMap<String, Dec>> SymbolTable;
 
-    public SemanticAnalyzer() {
-        scope = 0;
-        SymbolTable = new ArrayList<HashMap<String, Dec>>();
-        increaseScope();
-        initGlobal();
-        
+    public SemanticAnalyzer(boolean showSymbolTable) {
+        this.scope = 0;
+        this.showSymbolTable = showSymbolTable;
+        this.SymbolTable = new ArrayList<HashMap<String, Dec>>();
     }
 
     public int visit(DecList expList, int level) {
+        increaseScope();
+        initGlobal();
         while (expList != null) {
             if (expList.head != null) {
                 expList.head.accept(this, level);
@@ -26,6 +28,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
             expList = expList.tail;
         }
         
+        decreaseScope();
         return NameTy.VOID;
     }
 
@@ -330,14 +333,25 @@ public class SemanticAnalyzer implements AbsynVisitor {
         output.accept(this, 0);
     }
 
-    private void decreaseScope() {
-        scope--;
-        SymbolTable.remove(scope);
+    private void increaseScope() {
+        this.scope += 1;
+        SymbolTable.add(new HashMap<String, Dec>());
+        
+        if (showSymbolTable) {
+            indent(scope - 1);
+            System.out.println("{");
+        }
     }
 
-    private void increaseScope() {
-        scope++;
-        SymbolTable.add(new HashMap<String, Dec>());
+    private void decreaseScope() {
+        if (showSymbolTable) {
+            showSymbolTable();
+            indent(scope - 1);
+            System.out.println("}");
+        }
+
+        this.scope -= 1;
+        SymbolTable.remove(scope);
     }
 
     private Boolean varExists(String var) {
@@ -403,5 +417,16 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
     private void reportError(int row, int col, String message) {
         System.err.println("Error in line " + (row + 1) + ", column " + (col + 1) + " : " + message); 
+    }
+
+    private void indent(int level) {
+        for (int i = 0; i < level * SPACES; i++) System.out.print(" ");
+    }
+
+    private void showSymbolTable() {
+        for (String name : SymbolTable.get(scope - 1).keySet()) {
+            indent(scope);
+            System.out.println(SymbolTable.get(scope - 1).get(name));
+        }
     }
 }
