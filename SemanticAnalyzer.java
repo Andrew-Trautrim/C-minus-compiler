@@ -44,6 +44,8 @@ public class SemanticAnalyzer implements AbsynVisitor {
         level++;
         exp.result.accept(this, level);
         
+        addDec(exp);
+
         increaseScope();
         exp.params.accept(this, level);
         if (!(exp.body instanceof NilExp)) {
@@ -51,9 +53,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
             int type = exp.body.accept(this, level);
             // TODO check parameter equivalence
         }
-        decreaseScope();
-
-        addDec(exp);
+        decreaseScope();   
 
         return NameTy.VOID;
     }
