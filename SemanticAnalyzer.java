@@ -8,6 +8,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
     private int scope;
     private int returnType;
+    private boolean hasErr = false;
     private ArrayList<HashMap<String, Dec>> SymbolTable;
 
     public SemanticAnalyzer() {
@@ -43,7 +44,9 @@ public class SemanticAnalyzer implements AbsynVisitor {
     public int visit(FunctionDec exp, int level) {
         level++;
         exp.result.accept(this, level);
-        
+
+        addDec(exp);
+
         increaseScope();
         exp.params.accept(this, level);
         if (!(exp.body instanceof NilExp)) {
@@ -52,8 +55,6 @@ public class SemanticAnalyzer implements AbsynVisitor {
             // TODO check parameter equivalence
         }
         decreaseScope();
-
-        addDec(exp);
 
         return NameTy.VOID;
     }
@@ -313,6 +314,10 @@ public class SemanticAnalyzer implements AbsynVisitor {
         return NameTy.BOOL;
     }
 
+    public boolean getErr(){
+        return hasErr;
+    }
+
     /********** Private functions **********/
 
     private void initGlobal() {
@@ -402,6 +407,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
     }
 
     private void reportError(int row, int col, String message) {
+        hasErr = true;
         System.err.println("Error in line " + (row + 1) + ", column " + (col + 1) + " : " + message); 
     }
 }
