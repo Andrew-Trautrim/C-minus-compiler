@@ -54,7 +54,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
             int type = exp.body.accept(this, level);
             // TODO check parameter equivalence
         }
-        decreaseScope();
+        decreaseScope();   
 
         addDec(exp);
 
