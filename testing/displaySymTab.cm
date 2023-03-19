@@ -1,0 +1,8 @@
+int f(int size){
+    int i;
+    int temp;
+
+    {
+        int j;
+    }
+}

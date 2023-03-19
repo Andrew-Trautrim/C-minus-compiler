@@ -26,7 +26,7 @@ class Main {
       SemanticAnalyzer analyzer = new SemanticAnalyzer();
       result.accept(analyzer, 0);
 
-      if (!analyzer.getErr() && result != null) {
+      if (Arrays.stream(argv).anyMatch("-a"::equals) && !analyzer.getErr() && result != null) {
         System.out.println("The abstract syntax tree is:");
         ShowTreeVisitor visitor = new ShowTreeVisitor();
         result.accept(visitor, 0); 
