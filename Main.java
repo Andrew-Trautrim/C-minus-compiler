@@ -28,7 +28,7 @@ class Main {
       }
 
       /* Semantic Analysis */
-      SemanticAnalyzer analyzer = new SemanticAnalyzer();
+      SemanticAnalyzer analyzer = new SemanticAnalyzer(Arrays.stream(argv).anyMatch("-s"::equals));
       result.accept(analyzer, 0);
 
     } catch (Exception e) {
