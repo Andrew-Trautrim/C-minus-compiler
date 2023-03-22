@@ -1,7 +1,0 @@
-void foo(void){}
-
-int fun(int fff){
-    int x; int y;
-    x = x * 2 + 1;
-    y = x + foo();
-}

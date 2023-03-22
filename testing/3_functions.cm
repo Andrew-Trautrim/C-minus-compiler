@@ -9,3 +9,8 @@ int func1(int a) {
     /* wrong return type */
     return true;
 }
+
+/* recursive call without prototype */
+int func2(int a) {
+    return func2(a);
+}

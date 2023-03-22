@@ -24,6 +24,7 @@ public class FunctionDec extends Dec {
         VarDecList iter = params;
         if (iter != null && iter.head != null) {
             param_list += iter.head.toString();
+            iter = iter.tail;
             while (iter != null) {
                 param_list += ", " + iter.head.toString();
                 iter = iter.tail;

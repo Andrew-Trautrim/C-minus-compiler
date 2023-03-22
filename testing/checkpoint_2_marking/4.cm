@@ -1,7 +1,0 @@
-void foo(void){}
-
-void funtwo(void){
-    int x;
-    x = 2;
-    return x;
-}

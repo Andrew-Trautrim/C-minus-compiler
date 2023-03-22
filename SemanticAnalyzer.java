@@ -112,7 +112,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
 
     public int visit(ReturnExp exp, int level) {
         int type = exp.exp.accept(this, ++level);
-        if (type != returnType) {
+        if (type != returnType && type != NameTy.UNDEF) {
             reportError(exp.row, exp.col, "Return type does not match function definition.");
         }
 
@@ -403,15 +403,17 @@ public class SemanticAnalyzer implements AbsynVisitor {
             SimpleDec var = (SimpleDec)dec;
             if (varExists(var.name)) {
                 reportError(var.row, var.col, "Variable \'" + var.name + "\' already declared.");
+            } else {
+                SymbolTable.get(scope - 1).put(var.name, var);
             }
-            SymbolTable.get(scope - 1).put(var.name, var);
         }
         else if (dec instanceof ArrayDec) {
             ArrayDec var = (ArrayDec)dec;
             if (varExists(var.name)) {
                 reportError(var.row, var.col, "Variable \'" + var.name + "\' already declared.");
+            } else {
+                SymbolTable.get(scope - 1).put(var.name, var);
             }
-            SymbolTable.get(scope - 1).put(var.name, var);
         }
     }
 
