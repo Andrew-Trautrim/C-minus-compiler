@@ -3,5 +3,5 @@ package absyn;
 abstract public class Absyn {
     public int row, col;
 
-    abstract public int accept( AbsynVisitor visitor, int level );
+    abstract public <T> T accept( AbsynVisitor<T> visitor, int value, boolean flag );
 }

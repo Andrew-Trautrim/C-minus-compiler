@@ -14,8 +14,8 @@ public class NameTy extends Absyn {
         this.type = type;
     }
 
-    public int accept( AbsynVisitor visitor, int level ) {
-        return visitor.visit( this, level );
+    public <T> T accept( AbsynVisitor<T> visitor, int value, boolean flag ) {
+        return visitor.visit( this, value, flag );
     }
 
     public String toString() {

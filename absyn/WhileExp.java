@@ -11,7 +11,7 @@ public class WhileExp extends Exp {
         this.body = body;
     }
 
-    public int accept( AbsynVisitor visitor, int level ) {
-        return visitor.visit( this, level );
+    public <T> T accept( AbsynVisitor<T> visitor, int value, boolean flag ) {
+        return visitor.visit( this, value, flag );
     }
 }
