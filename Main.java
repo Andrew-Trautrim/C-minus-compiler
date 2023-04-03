@@ -24,12 +24,12 @@ class Main {
       if (Arrays.stream(argv).anyMatch("-a"::equals) && result != null) {
          System.out.println("The abstract syntax tree is:");
          ShowTreeVisitor visitor = new ShowTreeVisitor();
-         result.accept(visitor, 0); 
+         result.accept(visitor, 0, false); 
       }
 
       /* Semantic Analysis */
       SemanticAnalyzer analyzer = new SemanticAnalyzer(Arrays.stream(argv).anyMatch("-s"::equals));
-      result.accept(analyzer, 0);
+      result.accept(analyzer, 0, false);
 
     } catch (Exception e) {
       /* do cleanup here -- possibly rethrow e */

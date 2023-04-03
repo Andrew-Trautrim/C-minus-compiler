@@ -3,7 +3,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
 
-public class SemanticAnalyzer implements AbsynVisitor {
+public class SemanticAnalyzer implements AbsynVisitor<Integer> {
     
     final static int SPACES = 4;
 
@@ -18,12 +18,12 @@ public class SemanticAnalyzer implements AbsynVisitor {
         this.SymbolTable = new ArrayList<HashMap<String, Dec>>();
     }
 
-    public int visit(DecList expList, int level) {
+    public Integer visit(DecList expList, int value, boolean flag) {
         increaseScope();
         initGlobal();
         while (expList != null) {
             if (expList.head != null) {
-                expList.head.accept(this, level);
+                expList.head.accept(this, value, flag);
             }
             expList = expList.tail;
         }
@@ -32,10 +32,10 @@ public class SemanticAnalyzer implements AbsynVisitor {
         return NameTy.VOID;
     }
 
-    public int visit(VarDecList expList, int level) {
+    public Integer visit(VarDecList expList, int value, boolean flag) {
         while (expList != null) {
             if (expList.head != null) {
-                expList.head.accept(this, level);
+                expList.head.accept(this, value, flag);
             }
             expList = expList.tail;
         }
@@ -43,15 +43,14 @@ public class SemanticAnalyzer implements AbsynVisitor {
         return NameTy.VOID;
     }
 
-    public int visit(FunctionDec exp, int level) {
-        level++;
-        exp.result.accept(this, level);
+    public Integer visit(FunctionDec exp, int value, boolean flag) {
+        exp.result.accept(this, value, flag);
         
         increaseScope();
-        exp.params.accept(this, level);
+        exp.params.accept(this, value, flag);
         if (!(exp.body instanceof NilExp)) {
             returnType = exp.result.type;
-            int type = exp.body.accept(this, level);
+            int type = exp.body.accept(this, value, flag);
             // TODO check parameter equivalence
         }
         decreaseScope();   
@@ -61,7 +60,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
         return NameTy.VOID;
     }
 
-    public int visit(SimpleDec exp, int level) {
+    public Integer visit(SimpleDec exp, int value, boolean flag) {
         addDec(exp);
         if (exp.type.type == NameTy.VOID) {
             reportError(exp.row, exp.col, "Variable \'" + exp.name + "\' cannot be declared as void type.");
@@ -70,7 +69,7 @@ public class SemanticAnalyzer implements AbsynVisitor {
         return exp.type.type;
     }
 
-    public int visit(ArrayDec exp, int level) {
+    public Integer visit(ArrayDec exp, int value, boolean flag) {
         addDec(exp);
         if (exp.type.type == NameTy.VOID) {
             reportError(exp.row, exp.col, "Variable \'" + exp.name + "\' cannot be declared as void type.");
@@ -79,19 +78,19 @@ public class SemanticAnalyzer implements AbsynVisitor {
         return exp.type.type;
     }
 
-    public int visit(ExpList expList, int level) {
+    public Integer visit(ExpList expList, int value, boolean flag) {
         int type = NameTy.VOID;
-        Boolean flag = false; 
+        boolean return_flag = false; 
 
         while (expList != null) {
             if (expList.head != null) {
                 // return type is set to the first return statement seen
-                if (!flag && expList.head instanceof ReturnExp) {
-                    type = expList.head.accept(this, level);
-                    flag = !flag; // flag set to true once a return statement has been seen
+                if (!return_flag && expList.head instanceof ReturnExp) {
+                    type = expList.head.accept(this, value, flag);
+                    return_flag = !return_flag; // flag set to true once a return statement has been seen
                 }
                 else {
-                    expList.head.accept(this, level);
+                    expList.head.accept(this, value, flag);
                 }
             }
             expList = expList.tail;
@@ -100,18 +99,17 @@ public class SemanticAnalyzer implements AbsynVisitor {
         return type;
     }
     
-    public int visit(CompoundExp exp, int level) {
+    public Integer visit(CompoundExp exp, int value, boolean flag) {
         int type; 
 
-        level++;
-        exp.decs.accept(this, level);
-        type = exp.exps.accept(this, level);
+        exp.decs.accept(this, value, flag);
+        type = exp.exps.accept(this, value, flag);
 
         return type;
     }
 
-    public int visit(ReturnExp exp, int level) {
-        int type = exp.exp.accept(this, ++level);
+    public Integer visit(ReturnExp exp, int value, boolean flag) {
+        int type = exp.exp.accept(this, value, flag);
         if (type != returnType && type != NameTy.UNDEF) {
             reportError(exp.row, exp.col, "Return type does not match function definition.");
         }
@@ -119,45 +117,42 @@ public class SemanticAnalyzer implements AbsynVisitor {
         return type;
     }
 
-    public int visit(IfExp exp, int level) {
-        level++;
-        int type = exp.test.accept(this, level);
-        if (type != NameTy.BOOL) {
+    public Integer visit(IfExp exp, int value, boolean flag) {
+        int type = exp.test.accept(this, value, flag);
+        if (type != NameTy.BOOL && type != NameTy.INT) {
             reportError(exp.test.row, exp.test.col, "If condition must be boolean type.");
         }
 
         increaseScope();
-        exp.thenpart.accept(this, level);
+        exp.thenpart.accept(this, value, flag);
         decreaseScope();
 
         if (exp.elsepart != null) {
             increaseScope();
-            exp.elsepart.accept(this, level);
+            exp.elsepart.accept(this, value, flag);
             decreaseScope();
         }
         
         return NameTy.VOID;
     }
 
-    public int visit(WhileExp exp, int level) {
-
-        level++;
-        int type = exp.test.accept(this, level);
-        if (type != NameTy.BOOL) {
+    public Integer visit(WhileExp exp, int value, boolean flag) {
+        int type = exp.test.accept(this, value, flag);
+        if (type != NameTy.BOOL && type != NameTy.INT) {
             reportError(exp.test.row, exp.test.col, "While condition must be boolean type.");
         }
 
         increaseScope();
-        exp.body.accept(this, level);
+        exp.body.accept(this, value, flag);
         decreaseScope();
 
         return NameTy.VOID;
     }
 
-    public int visit(CallExp exp, int level) {
+    public Integer visit(CallExp exp, int value, boolean flag) {
         FunctionDec func;
         int type;
-        exp.args.accept(this, ++level);
+        exp.args.accept(this, value, flag);
 
         try {
             func = (FunctionDec)getDec(exp.func);
@@ -172,14 +167,14 @@ public class SemanticAnalyzer implements AbsynVisitor {
         return type;
     }
 
-    public int visit(OpExp exp, int level) {
+    public Integer visit(OpExp exp, int value, boolean flag) {
         int ltype, rtype, type;
 
         ltype = NameTy.UNDEF;
         if (!(exp.left instanceof NilExp)) {
-            ltype = exp.left.accept(this, level);
+            ltype = exp.left.accept(this, value, flag);
         }
-        rtype = exp.right.accept(this, level);
+        rtype = exp.right.accept(this, value, flag);
 
         switch(exp.op) {
             case OpExp.PLUS:
@@ -260,10 +255,9 @@ public class SemanticAnalyzer implements AbsynVisitor {
         return type;
     }
 
-    public int visit(AssignExp exp, int level) {
-        level++;
-        int ltype = exp.lhs.accept(this, level);
-        int rtype = exp.rhs.accept(this, level);
+    public Integer visit(AssignExp exp, int value, boolean flag) {
+        int ltype = exp.lhs.accept(this, value, flag);
+        int rtype = exp.rhs.accept(this, value, flag);
 
         if (ltype != NameTy.UNDEF && rtype != NameTy.UNDEF && ltype != rtype) {
             reportError(exp.row, exp.col, "Invalid assignment, types dont match.");
@@ -272,11 +266,11 @@ public class SemanticAnalyzer implements AbsynVisitor {
         return ltype;
     }
 
-    public int visit(VarExp exp, int level) {
-        return exp.variable.accept(this, ++level);
+    public Integer visit(VarExp exp, int value, boolean flag) {
+        return exp.variable.accept(this, value, flag);
     }
 
-    public int visit(SimpleVar exp, int level) {
+    public Integer visit(SimpleVar exp, int value, boolean flag) {
         int type;
         try {
             type = getType(exp.name);
@@ -289,9 +283,9 @@ public class SemanticAnalyzer implements AbsynVisitor {
         return type;
     }
     
-    public int visit(IndexVar exp, int level) {
+    public Integer visit(IndexVar exp, int value, boolean flag) {
         int type;
-        type = exp.index.accept(this, ++level);
+        type = exp.index.accept(this, value, flag);
         
         if (type != NameTy.INT) {
             reportError(exp.row, exp.col, "Integer type required for indexing.");
@@ -300,19 +294,19 @@ public class SemanticAnalyzer implements AbsynVisitor {
         return type;
     }
 
-    public int visit(NameTy exp, int level) {
+    public Integer visit(NameTy exp, int value, boolean flag) {
         return exp.type;
     }
 
-    public int visit(NilExp exp, int level) {
+    public Integer visit(NilExp exp, int value, boolean flag) {
         return NameTy.VOID;
     }
 
-    public int visit(IntExp exp, int level) {
+    public Integer visit(IntExp exp, int value, boolean flag) {
         return NameTy.INT;
     }
 
-    public int visit(BoolExp exp, int level) {
+    public Integer visit(BoolExp exp, int value, boolean flag) {
         return NameTy.BOOL;
     }
 
@@ -329,8 +323,8 @@ public class SemanticAnalyzer implements AbsynVisitor {
         CompoundExp outputBody = new CompoundExp(0, 0, new VarDecList(null, null), new ExpList(null, null));
         FunctionDec output = new FunctionDec(0, 0, outputResult, "output", outputParams, outputBody);
 
-        input.accept(this, 0);
-        output.accept(this, 0);
+        input.accept( this, 0, false );
+        output.accept( this, 0, false );
     }
 
     private void increaseScope() {
@@ -421,8 +415,8 @@ public class SemanticAnalyzer implements AbsynVisitor {
         System.err.println("Error in line " + (row + 1) + ", column " + (col + 1) + " : " + message); 
     }
 
-    private void indent(int level) {
-        for (int i = 0; i < level * SPACES; i++) System.out.print(" ");
+    private void indent(int value) {
+        for (int i = 0; i < value * SPACES; i++) System.out.print(" ");
     }
 
     private void showSymbolTable() {
