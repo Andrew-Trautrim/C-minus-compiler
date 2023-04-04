@@ -28,7 +28,6 @@ class Main {
         CodeGenerator generator = new CodeGenerator("test.tm");
         generator.visit(result);
       }
-
     } catch (Exception e) {
       /* do cleanup here -- possibly rethrow e */
       e.printStackTrace();
