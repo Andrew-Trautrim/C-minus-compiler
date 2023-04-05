@@ -1,5 +1,8 @@
-int x;
+int x[2];
+int y;
 
 int main(void) {
-    x = 1 + 1 + 1 + 1;
+    int a[2];
+
+    x[1] = 5 + a[0];
 }
