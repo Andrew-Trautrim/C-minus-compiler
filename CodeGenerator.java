@@ -166,6 +166,8 @@ public class CodeGenerator implements AbsynVisitor<Void> {
 
     public Void visit(IndexVar exp, int r, boolean isAddr) {
         exp.index.accept(this, r + 1, false); // load index offset to register r + 1
+        checkBounds(exp, r + 1);
+
         if (exp.dec.nestLevel == 0) { // global scope
             emitRO("ADD", r + 1, r + 1, gp, "add gp to reg " + (r + 1));
         }
@@ -178,6 +180,18 @@ public class CodeGenerator implements AbsynVisitor<Void> {
 
         emitRM("LD", r, exp.dec.offset, r + 1, "load variable " + exp.name + " into reg " + r); 
         return null; 
+    }
+
+    private void checkBounds(IndexVar exp, int r) {
+        emitComment("-> check bounds");
+        emitRM("JGE", r, 1, pc, "skip halt");
+        emitRO("HALT", 0, 0, 0, "");
+        // emitRM("LDC" , r + 1, 0, 0, "zero register " + (r + 1));
+        // emitRM("LD", r + 1, exp.dec.offset, r + 1, "load size of " + exp.name);
+        // emitRO("SUB", r + 1, r + 1, r, "compare index to size of array");
+        // emitRM("JGT", r + 1, 1, pc, "skip halt");
+        // emitRO("HALT", 0, 0, 0, "");
+        emitComment("<- check bounds");
     }
 
     public Void visit(IntExp exp, int r, boolean isAddr) {
@@ -343,7 +357,8 @@ public class CodeGenerator implements AbsynVisitor<Void> {
             emitRM("ST", ac, exp.lhs.variable.dec.offset, exp.lhs.variable.dec.nestLevel == 0 ? gp : fp, "write reg " + ac + " to variable " + ((SimpleVar)exp.lhs.variable).name);
         }
         else if (exp.lhs.variable instanceof IndexVar) {
-            ((IndexVar)exp.lhs.variable).index.accept(this, ac1, false); // save index to ac1 register -> can we have an assign expression in the index?
+            ((IndexVar)exp.lhs.variable).index.accept(this, ac1, false); // save index to ac1 register 
+            checkBounds(((IndexVar)exp.lhs.variable), ac1);
             if (exp.lhs.variable.dec.nestLevel == 0) { // global scope
                 emitRO("ADD", ac1, ac1, gp, "add gp to reg " + ac1);
             }
@@ -452,10 +467,7 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         exp.params.accept(this, 0, false);
         exp.body.accept(this, 0, false);
 
-        if (exp.func.equals("main")) {// add return statement for main function
-            emitRM("LD", pc, retFO, fp, "return to caller"); 
-        }
-        
+        emitRM("LD", pc, retFO, fp, "return to caller");
         emitComment("<- function: " + exp.func);
 
         // skip over function
@@ -507,7 +519,7 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         return null; 
     }
 
-    public Void visit(DecList expList, int value, boolean isAddr) { 
+    public Void visit(DecList expList, int value, boolean isAddr) {
         while (expList != null) {
             if (expList.head != null) {
                 expList.head.accept(this, value, false);
