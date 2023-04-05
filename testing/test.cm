@@ -1,13 +1,9 @@
-int sum(int a, int b);
-
-
 int main(void) {
-    int x;
-
-    x = sum(1, 2);
-    output(x);
-}
-
-int sum(int a, int b) {
-    return a + b;
+    
+    if (~0) {
+        output(1);
+    }
+    else {
+        output(2);
+    }
 }

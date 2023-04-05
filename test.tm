@@ -17,51 +17,47 @@
   3:   LDA 7, 7(7)	
 * End of standard prelude.
 * -> function: main
- 13:    ST 0, -1(5)	save return PC
+ 12:    ST 0, -1(5)	save return PC
 * -> compound statement
-* allocating local variable x at offset -2
-* -> call statement: sum
- 14:   LDC 0, 1(0)	load 1 into reg 0
- 15:    ST 0, -5(5)	
- 16:   LDC 0, 2(0)	load 2 into reg 0
- 17:    ST 0, -6(5)	
- 18:    ST 5, -3(5)	save current fp
- 19:   LDA 5, -3(5)	create new frame
- 20:   LDA 0, 1(7)	save return address
- 21:   LDA 7, -23(7)	jump to function declaration
- 22:    LD 5, 0(5)	pop current frame
-* <- call statement: sum
- 23:    ST 0, -2(5)	write reg 0 to variable x
+* -> if statement
+ 13:   LDC 0, 0(0)	load 0 into reg 0
+ 14:   JNE 0, 2(7)	jump 2 lines
+ 15:   LDC 0, 1(0)	set reg 0 to true
+ 16:   LDA 7, 1(7)	skip 1 line
+ 17:   LDC 0, 0(0)	set reg 0 to false
+* -> compound statement
 * -> call statement: output
- 24:    LD 0, -2(5)	load variable x into reg 0
- 25:    ST 0, -5(5)	
- 26:    ST 5, -3(5)	save current fp
- 27:   LDA 5, -3(5)	create new frame
- 28:   LDA 0, 1(7)	save return address
- 29:   LDA 7, -23(7)	jump to function declaration
- 30:    LD 5, 0(5)	pop current frame
+ 19:   LDC 0, 1(0)	load 1 into reg 0
+ 20:    ST 0, -4(5)	
+ 21:    ST 5, -2(5)	save current fp
+ 22:   LDA 5, -2(5)	create new frame
+ 23:   LDA 0, 1(7)	save return address
+ 24:   LDA 7, -18(7)	jump to function declaration
+ 25:    LD 5, 0(5)	pop current frame
 * <- call statement: output
 * <- compound statement
- 31:    LD 7, -1(5)	return to caller
-* <- function: main
- 12:   LDA 7, 19(7)	
- 11:   LDA 7, 21(7)	jump to function declaration
-* -> function: sum
- 33:    ST 0, -1(5)	save return PC
-* allocating local variable a at offset -2
-* allocating local variable b at offset -3
+ 18:   JEQ 0, 8(7)	
 * -> compound statement
- 34:    LD 0, -2(5)	load variable a into reg 0
- 35:    LD 1, -3(5)	load variable b into reg 1
- 36:   ADD 0, 0, 1	add reg 0 to reg 1
- 37:    LD 7, -1(5)	return to caller
+* -> call statement: output
+ 27:   LDC 0, 2(0)	load 2 into reg 0
+ 28:    ST 0, -4(5)	
+ 29:    ST 5, -2(5)	save current fp
+ 30:   LDA 5, -2(5)	create new frame
+ 31:   LDA 0, 1(7)	save return address
+ 32:   LDA 7, -26(7)	jump to function declaration
+ 33:    LD 5, 0(5)	pop current frame
+* <- call statement: output
 * <- compound statement
-* <- function: sum
- 32:   LDA 7, 5(7)	
+ 26:   LDA 7, 7(7)	
+* <- if statement
+* <- compound statement
+ 34:    LD 7, -1(5)	return to caller
+* <- function: main
+ 11:   LDA 7, 23(7)	
 * Finale:
- 38:    ST 5, 0(5)	push ofp
- 39:   LDA 5, 0(5)	push frame
- 40:   LDA 0, 1(7)	load ac with ret ptr
- 41:   LDA 7, -29(7)	jump to main loc
- 42:    LD 5, 0(5)	pop frame
- 43:  HALT 0, 0, 0	
+ 35:    ST 5, 0(5)	push ofp
+ 36:   LDA 5, 0(5)	push frame
+ 37:   LDA 0, 1(7)	load ac with ret ptr
+ 38:   LDA 7, -27(7)	jump to main loc
+ 39:    LD 5, 0(5)	pop frame
+ 40:  HALT 0, 0, 0	

@@ -234,38 +234,106 @@ public class CodeGenerator implements AbsynVisitor<Void> {
 
     public Void visit(OpExp exp, int r, boolean isAddr) {
 
-        exp.left.accept(this, r, false);
-        exp.right.accept(this, r + 1, false);
         if (exp.op == OpExp.PLUS) {
+            exp.left.accept(this, r, false);
+            exp.right.accept(this, r + 1, false);
             emitRO("ADD", r, r, r + 1, "add reg " + r + " to reg " + (r + 1));
         }
         else if (exp.op == OpExp.MINUS) {
+            exp.left.accept(this, r, false);
+            exp.right.accept(this, r + 1, false);
             emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
         }
         else if (exp.op == OpExp.UMINUS) {
+            exp.left.accept(this, r, false);
+            exp.right.accept(this, r + 1, false);
             emitRM("LDC", r, 0, 0, "zero register " + r);
             emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
         }
         else if (exp.op == OpExp.TIMES) {
+            exp.left.accept(this, r, false);
+            exp.right.accept(this, r + 1, false);
             emitRO("MUL", r, r, r + 1, "multiply reg " + r + " by reg " + (r + 1));
         }
         else if (exp.op == OpExp.DIVIDE) {
+            exp.left.accept(this, r, false);
+            exp.right.accept(this, r + 1, false);
             emitRO("DIV", r, r, r + 1, "divide reg " + r + " by reg " + (r + 1));
         }
-        else if (exp.op == OpExp.EQ || exp.op == OpExp.NEQ || exp.op == OpExp.LT || exp.op == OpExp.LEQ || exp.op == OpExp.GT || exp.op == OpExp.GEQ) {
-            emitRO("SUB", r, r, r + 1, "");
+        else if (exp.op == OpExp.EQ) {
+            exp.left.accept(this, r, false);
+            exp.right.accept(this, r + 1, false);
+            emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
+            conditional("JNE", r);
+        }
+        else if (exp.op == OpExp.NEQ) {
+            exp.left.accept(this, r, false);
+            exp.right.accept(this, r + 1, false);
+            emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
+        }
+        else if (exp.op == OpExp.LT) {
+            exp.left.accept(this, r, false);
+            exp.right.accept(this, r + 1, false);
+            emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
+            conditional("JGE", r);
+        }
+        else if (exp.op == OpExp.LEQ) {
+            exp.left.accept(this, r, false);
+            exp.right.accept(this, r + 1, false);
+            emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
+            conditional("JGT", r);
+        }
+        else if (exp.op == OpExp.GT) {
+            exp.left.accept(this, r, false);
+            exp.right.accept(this, r + 1, false);
+            emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
+            conditional("JLE", r);
+        }
+        else if (exp.op == OpExp.GEQ) {
+            exp.left.accept(this, r, false);
+            exp.right.accept(this, r + 1, false);
+            emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
+            conditional("JLT", r);
         }
         else if (exp.op == OpExp.NOT) {
-            emitRM("LDC", r, 1, 0, "");
-            emitRO("SUB", r, r, r + 1, "");
+            exp.right.accept(this, r, false);
+            conditional("JNE", r);
         }
         else if (exp.op == OpExp.AND) {
-            emitRO("MUL", r, r, r + 1, "");
+            exp.left.accept(this, r, false);
+            exp.right.accept(this, r + 1, false);
+            emitRO("MUL", r, r, r + 1, "multiply reg " + r + " by reg " + (r + 1));
+            conditional("JEQ", r);
         }
-        // TODO
-        else if (exp.op == OpExp.OR) {}
+        else if (exp.op == OpExp.OR) {
+            // ~A
+            exp.left.accept(this, r, false);
+            conditional("JNE", r);
+            // ~B
+            exp.right.accept(this, r + 1, false);
+            conditional("JNE", r);
+
+            // ~A && ~B
+            emitRO("MUL", r, r, r + 1, "multiply reg " + r + " by reg " + (r + 1));
+            conditional("JEQ", r);
+
+            // ~(~A && ~B)
+            conditional("JNE", r);
+        }
 
         return null; 
+    }
+
+    /*
+     * compute result of conditional and store it in register r
+     * 1 is true
+     * 0 is false
+     */
+    private void conditional(String jumpCommand, int r) {
+        emitRM(jumpCommand, r, 2, pc, "jump 2 lines");
+        emitRM("LDC", r, 1, 0, "set reg " + r + " to true");
+        emitRM("LDA", pc, 1, pc, "skip 1 line");
+        emitRM("LDC", r, 0, 0, "set reg " + r + " to false");
     }
 
     public Void visit(AssignExp exp, int value, boolean isAddr) {
@@ -292,119 +360,27 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         return null; 
     }
 
-    /*
-     * exp: expression to be evaluated
-     * r: register to store result
-     * jump: position to jump to if assertion is false
-     */
-    private String conditional(Exp exp, int r, int jumpAddr) {
-        OpExp op;
-        if (exp instanceof OpExp) {
-            op = (OpExp)exp;
-            if (op.op == OpExp.PLUS) {
-                conditional(op.left, r, jumpAddr);
-                conditional(op.right, r + 1, jumpAddr);
-                emitRO("ADD", r, r, r + 1, "add reg " + r + " to reg " + (r + 1));
-                return "JEQ";
-            }
-            else if (op.op == OpExp.MINUS) {
-                conditional(op.left, r, jumpAddr);
-                conditional(op.right, r + 1, jumpAddr);
-                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
-                return "JEQ";
-            }
-            else if (op.op == OpExp.UMINUS) {
-                conditional(op.left, r, jumpAddr);
-                conditional(op.right, r + 1, jumpAddr);
-                emitRM("LDC", r, 0, 0, "zero register " + r);
-                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
-                return "JEQ";
-            }
-            else if (op.op == OpExp.TIMES) {
-                conditional(op.left, r, jumpAddr);
-                conditional(op.right, r + 1, jumpAddr);
-                emitRO("MUL", r, r, r + 1, "multiply reg " + r + " by reg " + (r + 1));
-                return "JEQ";
-            }
-            else if (op.op == OpExp.DIVIDE) {
-                conditional(op.left, r, jumpAddr);
-                conditional(op.right, r + 1, jumpAddr);
-                emitRO("DIV", r, r, r + 1, "divide reg " + r + " by reg " + (r + 1));
-                return "JEQ";
-            }
-            else if (op.op == OpExp.EQ) {
-                conditional(op.left, r, jumpAddr);
-                conditional(op.right, r + 1, jumpAddr);
-                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
-                return "JNE";
-            }
-            else if (op.op == OpExp.NEQ) {
-                conditional(op.left, r, jumpAddr);
-                conditional(op.right, r + 1, jumpAddr);
-                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
-                return "JEQ";
-            }
-            else if (op.op == OpExp.LT) {
-                conditional(op.left, r, jumpAddr);
-                conditional(op.right, r + 1, jumpAddr);
-                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
-                return "JGE";
-            }
-            else if (op.op == OpExp.LEQ) {
-                conditional(op.left, r, jumpAddr);
-                conditional(op.right, r + 1, jumpAddr);
-                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
-                return "JGT";
-            }
-            else if (op.op == OpExp.GT) {
-                conditional(op.left, r, jumpAddr);
-                conditional(op.right, r + 1, jumpAddr);
-                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
-                return "JLE";
-            }
-            else if (op.op == OpExp.GEQ) {
-                conditional(op.left, r, jumpAddr);
-                conditional(op.right, r + 1, jumpAddr);
-                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
-                return "JLT";
-            }
-            else if (op.op == OpExp.NOT) {
-                // wtf?
-            }
-            else if (op.op == OpExp.AND) {
-                
-            }
-            else if (op.op == OpExp.OR) {
-
-            }
-        }
-
-        exp.accept(this, r, false);
-        return "JEQ";
-    }
-
     public Void visit(IfExp exp, int value, boolean isAddr) {
         emitComment("-> if statement");
 
         // if test
-        String op = conditional(exp.test, ac, 0);
-        // exp.test.accept(this, ac, false);
+        exp.test.accept(this, ac, false);
         int conditionalJump = emitSkip(1);
-
-        // conditional jump
 
         // code for TRUE case
         exp.thenpart.accept(this, value, false);
         int unconditionalSkip = emitSkip(1);
         
+        // conditional jump
         int savedLoc = emitSkip(0);
         emitBackup(conditionalJump);
-        emitRM_Abs(op, ac, savedLoc, "");
+        emitRM_Abs("JEQ", ac, savedLoc, "");
         emitRestore();
 
         // code for FALSE case
         exp.elsepart.accept(this, value, false);
 
+        // unconditional jump
         savedLoc = emitSkip(0);
         emitBackup(unconditionalSkip);
         emitRM_Abs("LDA", pc, savedLoc, "");
@@ -420,7 +396,7 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         int unconditionalJump = emitSkip(0); // get location for return jump
 
         // while test
-        String op = conditional(exp.test, ac, 0);
+        exp.test.accept(this, ac, false);
         int conditionalJump = emitSkip(1);
 
         // code for TRUE case
@@ -432,7 +408,7 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         // conditional jump
         int savedLoc = emitSkip(0);
         emitBackup(conditionalJump);
-        emitRM_Abs(op, ac, savedLoc, "");
+        emitRM_Abs("JEQ", ac, savedLoc, "");
         emitRestore();
         
         emitComment("<- while statement");

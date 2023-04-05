@@ -236,18 +236,18 @@ public class SemanticAnalyzer implements AbsynVisitor<Integer> {
                 type = NameTy.BOOL;
                 break;
             case OpExp.NOT:
-                if (rtype != NameTy.UNDEF && rtype != NameTy.BOOL) 
-                    reportError(exp.row, exp.col, "Expression must be a boolean type under \'~\' operator.");
+                if (rtype != NameTy.UNDEF && rtype != NameTy.BOOL && rtype != NameTy.INT) 
+                    reportError(exp.row, exp.col, "Expression must be a boolean or integer type under \'~\' operator.");
                 type = NameTy.BOOL;
                 break;
             case OpExp.AND:
-                if ((ltype != NameTy.UNDEF && ltype != NameTy.BOOL) || (rtype != NameTy.UNDEF && rtype != NameTy.BOOL)) 
-                    reportError(exp.row, exp.col, "Left and right sides must be boolean types under \'&&\' operator.");
+                if ((ltype != NameTy.UNDEF && ltype != NameTy.BOOL && ltype != NameTy.INT) || (rtype != NameTy.UNDEF && rtype != NameTy.BOOL && rtype != NameTy.INT)) 
+                    reportError(exp.row, exp.col, "Left and right sides must be either boolean or integer types under \'&&\' operator.");
                 type = NameTy.BOOL;
                 break;
             case OpExp.OR:
-                if ((ltype != NameTy.UNDEF && ltype != NameTy.BOOL) || (rtype != NameTy.UNDEF && rtype != NameTy.BOOL)) 
-                    reportError(exp.row, exp.col, "Left and right sides must be boolean types under \'||\' operator.");
+                if ((ltype != NameTy.UNDEF && ltype != NameTy.BOOL && ltype != NameTy.INT) || (rtype != NameTy.UNDEF && rtype != NameTy.BOOL && rtype != NameTy.INT)) 
+                reportError(exp.row, exp.col, "Left and right sides must be either boolean or integer types under \'&&\' operator.");
                 type = NameTy.BOOL;
                 break;
             default:
