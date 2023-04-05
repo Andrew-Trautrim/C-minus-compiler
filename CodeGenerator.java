@@ -2,6 +2,7 @@ import java.io.*;
 import absyn.*;
 
 public class CodeGenerator implements AbsynVisitor<Void> {
+
     // special registers
     private static final int pc = 7;
     private static final int gp = 6;
@@ -291,19 +292,123 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         return null; 
     }
 
+    /*
+     * exp: expression to be evaluated
+     * r: register to store result
+     * jump: position to jump to if assertion is false
+     */
+    private String conditional(Exp exp, int r, int jumpAddr) {
+        OpExp op;
+        if (exp instanceof OpExp) {
+            op = (OpExp)exp;
+            if (op.op == OpExp.PLUS) {
+                conditional(op.left, r, jumpAddr);
+                conditional(op.right, r + 1, jumpAddr);
+                emitRO("ADD", r, r, r + 1, "add reg " + r + " to reg " + (r + 1));
+                return "JEQ";
+            }
+            else if (op.op == OpExp.MINUS) {
+                conditional(op.left, r, jumpAddr);
+                conditional(op.right, r + 1, jumpAddr);
+                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
+                return "JEQ";
+            }
+            else if (op.op == OpExp.UMINUS) {
+                conditional(op.left, r, jumpAddr);
+                conditional(op.right, r + 1, jumpAddr);
+                emitRM("LDC", r, 0, 0, "zero register " + r);
+                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
+                return "JEQ";
+            }
+            else if (op.op == OpExp.TIMES) {
+                conditional(op.left, r, jumpAddr);
+                conditional(op.right, r + 1, jumpAddr);
+                emitRO("MUL", r, r, r + 1, "multiply reg " + r + " by reg " + (r + 1));
+                return "JEQ";
+            }
+            else if (op.op == OpExp.DIVIDE) {
+                conditional(op.left, r, jumpAddr);
+                conditional(op.right, r + 1, jumpAddr);
+                emitRO("DIV", r, r, r + 1, "divide reg " + r + " by reg " + (r + 1));
+                return "JEQ";
+            }
+            else if (op.op == OpExp.EQ) {
+                conditional(op.left, r, jumpAddr);
+                conditional(op.right, r + 1, jumpAddr);
+                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
+                return "JNE";
+            }
+            else if (op.op == OpExp.NEQ) {
+                conditional(op.left, r, jumpAddr);
+                conditional(op.right, r + 1, jumpAddr);
+                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
+                return "JEQ";
+            }
+            else if (op.op == OpExp.LT) {
+                conditional(op.left, r, jumpAddr);
+                conditional(op.right, r + 1, jumpAddr);
+                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
+                return "JGE";
+            }
+            else if (op.op == OpExp.LEQ) {
+                conditional(op.left, r, jumpAddr);
+                conditional(op.right, r + 1, jumpAddr);
+                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
+                return "JGT";
+            }
+            else if (op.op == OpExp.GT) {
+                conditional(op.left, r, jumpAddr);
+                conditional(op.right, r + 1, jumpAddr);
+                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
+                return "JLE";
+            }
+            else if (op.op == OpExp.GEQ) {
+                conditional(op.left, r, jumpAddr);
+                conditional(op.right, r + 1, jumpAddr);
+                emitRO("SUB", r, r, r + 1, "subtract reg " + (r + 1) + " from reg " + r);
+                return "JLT";
+            }
+            else if (op.op == OpExp.NOT) {
+                // wtf?
+            }
+            else if (op.op == OpExp.AND) {
+                
+            }
+            else if (op.op == OpExp.OR) {
+
+            }
+        }
+
+        exp.accept(this, r, false);
+        return "JEQ";
+    }
+
     public Void visit(IfExp exp, int value, boolean isAddr) {
         emitComment("-> if statement");
 
         // if test
-        exp.test.accept(this, ac, false);
+        String op = conditional(exp.test, ac, 0);
+        // exp.test.accept(this, ac, false);
+        int conditionalJump = emitSkip(1);
 
         // conditional jump
 
         // code for TRUE case
+        exp.thenpart.accept(this, value, false);
+        int unconditionalSkip = emitSkip(1);
         
-        // unconditional jump
+        int savedLoc = emitSkip(0);
+        emitBackup(conditionalJump);
+        emitRM_Abs(op, ac, savedLoc, "");
+        emitRestore();
 
         // code for FALSE case
+        exp.elsepart.accept(this, value, false);
+
+        savedLoc = emitSkip(0);
+        emitBackup(unconditionalSkip);
+        emitRM_Abs("LDA", pc, savedLoc, "");
+        emitRestore();
 
         emitComment("<- if statement");
         return null; 
@@ -311,6 +416,24 @@ public class CodeGenerator implements AbsynVisitor<Void> {
 
     public Void visit(WhileExp exp, int value, boolean isAddr) {
         emitComment("-> while statement");
+
+        int unconditionalJump = emitSkip(0); // get location for return jump
+
+        // while test
+        String op = conditional(exp.test, ac, 0);
+        int conditionalJump = emitSkip(1);
+
+        // code for TRUE case
+        exp.body.accept(this, value, false);
+
+        // undonditional jump
+        emitRM_Abs("LDA", pc, unconditionalJump, "");
+
+        // conditional jump
+        int savedLoc = emitSkip(0);
+        emitBackup(conditionalJump);
+        emitRM_Abs(op, ac, savedLoc, "");
+        emitRestore();
         
         emitComment("<- while statement");
         return null; 
@@ -333,6 +456,11 @@ public class CodeGenerator implements AbsynVisitor<Void> {
  
     public Void visit(FunctionDec exp, int value, boolean isAddr) {
 
+        // TODO function prototypes
+        if (exp.body instanceof NilExp) {
+            return null;
+        }
+
         // skip over function
         int savedLoc1 = emitSkip(1);
 
@@ -348,7 +476,9 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         exp.params.accept(this, 0, false);
         exp.body.accept(this, 0, false);
 
-        emitRM("LD", pc, retFO, fp, "return to caller");
+        if (exp.func.equals("main")) {// add return statement for main function
+            emitRM("LD", pc, retFO, fp, "return to caller"); 
+        }
         
         emitComment("<- function: " + exp.func);
 

@@ -14,6 +14,7 @@ public class FunctionDec extends Dec {
         this.func = func;
         this.params = params;
         this.body = body;
+        this.funcAddr = -1;
     }
 
     public <T> T accept( AbsynVisitor<T> visitor, int value, boolean flag ) {
