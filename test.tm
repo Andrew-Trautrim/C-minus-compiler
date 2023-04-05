@@ -16,34 +16,52 @@
  10:    LD 7, -1(5)	return to caller
   3:   LDA 7, 7(7)	
 * End of standard prelude.
-* allocating global variable x[2] at offset -2
- 11:   LDC 0, 2(0)	load array size
- 12:    ST 0, -2(6)	
-* allocating global variable y at offset -3
-* -> function: main
- 13:    ST 0, -1(5)	save return PC
+* -> function: test
+ 12:    ST 0, -1(5)	save return PC
+* allocating local variable a at offset -2
 * -> compound statement
-* allocating local variable a[2] at offset -4
- 14:   LDC 0, 2(0)	load array size
- 15:    ST 0, -4(5)	
- 16:   LDC 0, 5(0)	load 5 into reg 0
- 17:   LDC 2, 0(0)	load 0 into reg 2
- 18:   ADD 2, 2, 5	add fp to reg 2
- 19:   LDC 1, 1(0)	load 1 into reg 1
- 20:   ADD 2, 2, 1	add 1 to reg 2
- 21:    LD 1, -4(2)	load variable a into reg 1
- 22:   ADD 0, 0, 1	add reg 0 to reg 1
- 23:   LDC 1, 1(0)	load 1 into reg 1
- 24:   ADD 1, 1, 6	add gp to reg 1
- 25:   LDC 2, 1(0)	load 1 into reg 2
- 26:   ADD 1, 1, 2	add 1 to reg 1
- 27:    ST 0, -2(1)	write reg 0 to variable x
+ 13:    LD 0, -2(5)	load variable a into reg 0
+ 14:   LDC 1, 2(0)	load 2 into reg 1
+ 15:   MUL 0, 0, 1	multiply reg 0 by reg 1
+ 16:    LD 7, -1(5)	return to caller
 * <- compound statement
+ 17:    LD 7, -1(5)	return to caller
+* <- function: test
+ 11:   LDA 7, 6(7)	
+* -> function: main
+ 19:    ST 0, -1(5)	save return PC
+* -> compound statement
+* allocating local variable x at offset -2
+* allocating local variable y at offset -3
+ 20:   LDC 0, 5(0)	load 5 into reg 0
+ 21:    ST 0, -3(5)	write reg 0 to variable y
+* -> call statement: test
+ 22:    LD 0, -3(5)	load variable y into reg 0
+ 23:    ST 0, -6(5)	
+ 24:    ST 5, -4(5)	save current fp
+ 25:   LDA 5, -4(5)	create new frame
+ 26:   LDA 0, 1(7)	save return address
+ 27:   LDA 7, -16(7)	jump to function declaration
+ 28:    LD 5, 0(5)	pop current frame
+* <- call statement: test
+ 29:    ST 0, -2(5)	write reg 0 to variable x
+* -> call statement: output
+ 30:    LD 0, -2(5)	load variable x into reg 0
+ 31:    ST 0, -6(5)	
+ 32:    ST 5, -4(5)	save current fp
+ 33:   LDA 5, -4(5)	create new frame
+ 34:   LDA 0, 1(7)	save return address
+ 35:   LDA 7, -29(7)	jump to function declaration
+ 36:    LD 5, 0(5)	pop current frame
+* <- call statement: output
+* <- compound statement
+ 37:    LD 7, -1(5)	return to caller
 * <- function: main
+ 18:   LDA 7, 19(7)	
 * Finale:
- 28:    ST 5, -4(5)	push ofp
- 29:   LDA 5, -4(5)	push frame
- 30:   LDA 0, 1(7)	load ac with ret ptr
- 31:   LDA 7, -32(7)	jump to main loc
- 32:    LD 5, 0(5)	pop frame
- 33:  HALT 0, 0, 0	
+ 38:    ST 5, 0(5)	push ofp
+ 39:   LDA 5, 0(5)	push frame
+ 40:   LDA 0, 1(7)	load ac with ret ptr
+ 41:   LDA 7, -23(7)	jump to main loc
+ 42:    LD 5, 0(5)	pop frame
+ 43:  HALT 0, 0, 0	

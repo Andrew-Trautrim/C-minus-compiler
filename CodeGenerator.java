@@ -27,7 +27,7 @@ public class CodeGenerator implements AbsynVisitor<Void> {
             System.err.println("Unable to create file" + filename);
         }
         this.filename = filename;
-        this.mainEntry = 0;
+        this.mainEntry = -1;
         this.globalOffset = 0;
         this.emitLoc = 0;
     }
@@ -138,7 +138,9 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         emitRM("ST", fp, globalOffset + ofpFO, fp, "push ofp");
         emitRM("LDA", fp, globalOffset, fp, "push frame");
         emitRM("LDA", ac, 1, pc, "load ac with ret ptr");
-        emitRM_Abs("LDA", pc, mainEntry, "jump to main loc");
+        if (mainEntry >= 0) {
+            emitRM_Abs("LDA", pc, mainEntry, "jump to main loc");
+        }
         emitRM("LD", fp, ofpFO, fp, "pop frame");
         emitRO("HALT", 0, 0, 0, "");
     }
@@ -194,14 +196,43 @@ public class CodeGenerator implements AbsynVisitor<Void> {
 
     public Void visit(CallExp exp, int value, boolean isAddr) {
         emitComment("-> call statement: " + exp.func);
-        
+
+        // save args to stack
+        int offset = 0;
+        ExpList expList = exp.args;
+        while (expList != null) {
+            if (expList.head != null) {
+                expList.head.accept(this, ac, false);
+                emitRM("ST", ac, frameOffset + initFO + offset, fp, "");
+                offset--;
+            }
+            expList = expList.tail;
+        }
+
+        int addr = 0;
+        if (exp.func.equals("input")) {
+            addr = 4;
+        } 
+        else if (exp.func.equals("output")) {
+            addr = 7;
+        }
+        else {
+            addr = exp.dec.funcAddr;
+        }
+
+        emitRM("ST", fp, frameOffset + ofpFO, fp, "save current fp");
+        emitRM("LDA", fp, frameOffset, fp, "create new frame");
+        emitRM("LDA", ac, 1, pc, "save return address");
+        emitRM_Abs("LDA", pc, addr, "jump to function declaration");
+        emitRM("LD", fp, ofpFO, fp, "pop current frame");
+
         emitComment("<- call statement: " + exp.func);
 
         return null;
     }
 
     public Void visit(OpExp exp, int r, boolean isAddr) {
-    
+
         exp.left.accept(this, r, false);
         exp.right.accept(this, r + 1, false);
         if (exp.op == OpExp.PLUS) {
@@ -237,7 +268,6 @@ public class CodeGenerator implements AbsynVisitor<Void> {
     }
 
     public Void visit(AssignExp exp, int value, boolean isAddr) {
-        String name = "";
         exp.rhs.accept(this, ac, false); // compute righthand side and store the result in ac
 
         if (exp.lhs.variable instanceof SimpleVar) {
@@ -265,6 +295,7 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         emitComment("-> if statement");
 
         // if test
+        exp.test.accept(this, ac, false);
 
         // conditional jump
 
@@ -285,8 +316,9 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         return null; 
     }
 
-    public Void visit(ReturnExp exp, int value, boolean isAddr) { 
-        emitRM("LD", pc, retFO, fp, "return to caller");
+    public Void visit(ReturnExp exp, int value, boolean isAddr) {
+        exp.exp.accept(this, ac, false); // save return value in reg ac
+        emitRM("LD", pc, retFO, fp, "return to caller"); // return to caller
         return null; 
     }
 
@@ -299,16 +331,32 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         return null; 
     }
  
-    public Void visit(FunctionDec exp, int value, boolean isAddr) { 
+    public Void visit(FunctionDec exp, int value, boolean isAddr) {
+
+        // skip over function
+        int savedLoc1 = emitSkip(1);
+
         exp.funcAddr = emitLoc;
-        emitComment("-> function: " + exp.func);
-        emitRM("ST", 0, retFO, fp, "save return PC");
         frameOffset = initFO;
+        if (exp.func.equals("main")) { // if its the main function save its address for the finale
+            mainEntry = emitLoc;
+        }
+
+        emitComment("-> function: " + exp.func);
+        emitRM("ST", ac, retFO, fp, "save return PC");
 
         exp.params.accept(this, 0, false);
         exp.body.accept(this, 0, false);
+
+        emitRM("LD", pc, retFO, fp, "return to caller");
         
         emitComment("<- function: " + exp.func);
+
+        // skip over function
+        int savedLoc2 = emitSkip(0);
+        emitBackup(savedLoc1);
+        emitRM_Abs("LDA", pc, savedLoc2, "");
+        emitRestore();
 
         return null;
     }
@@ -386,9 +434,4 @@ public class CodeGenerator implements AbsynVisitor<Void> {
     /* Wont be visited */
     public Void visit(NameTy exp, int value, boolean isAddr) { return null; }
     public Void visit(NilExp exp, int value, boolean isAddr) { return null; }
-
-    /* Get location of variable */
-    private int variableLoc(Var var) {
-        return ((var.dec.nestLevel == 0) ? gp : fp) + var.dec.offset;
-    }
 }
