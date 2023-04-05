@@ -1,10 +1,9 @@
-
-void func2();
-
-int func4(int a, bool b) {
-    void i;
-
-    while(~(a > 0)) {
-        a = a + i;
+int main(void) {
+    
+    if (~0) {
+        output(1);
+    }
+    else {
+        output(2);
     }
 }

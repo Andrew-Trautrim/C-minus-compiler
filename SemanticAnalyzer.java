@@ -62,6 +62,7 @@ public class SemanticAnalyzer implements AbsynVisitor<Integer> {
 
     public Integer visit(SimpleDec exp, int value, boolean flag) {
         addDec(exp);
+        exp.nestLevel = (scope == 1) ? 0 : 1;
         if (exp.type.type == NameTy.VOID) {
             reportError(exp.row, exp.col, "Variable \'" + exp.name + "\' cannot be declared as void type.");
         }
@@ -71,6 +72,7 @@ public class SemanticAnalyzer implements AbsynVisitor<Integer> {
 
     public Integer visit(ArrayDec exp, int value, boolean flag) {
         addDec(exp);
+        exp.nestLevel = (scope == 1) ? 0 : 1;
         if (exp.type.type == NameTy.VOID) {
             reportError(exp.row, exp.col, "Variable \'" + exp.name + "\' cannot be declared as void type.");
         }
@@ -156,6 +158,7 @@ public class SemanticAnalyzer implements AbsynVisitor<Integer> {
 
         try {
             func = (FunctionDec)getDec(exp.func);
+            exp.dec = func;
             type = func.result.type;
             // TODO check parameter equivalence
         }
@@ -233,18 +236,18 @@ public class SemanticAnalyzer implements AbsynVisitor<Integer> {
                 type = NameTy.BOOL;
                 break;
             case OpExp.NOT:
-                if (rtype != NameTy.UNDEF && rtype != NameTy.BOOL) 
-                    reportError(exp.row, exp.col, "Expression must be a boolean type under \'~\' operator.");
+                if (rtype != NameTy.UNDEF && rtype != NameTy.BOOL && rtype != NameTy.INT) 
+                    reportError(exp.row, exp.col, "Expression must be a boolean or integer type under \'~\' operator.");
                 type = NameTy.BOOL;
                 break;
             case OpExp.AND:
-                if ((ltype != NameTy.UNDEF && ltype != NameTy.BOOL) || (rtype != NameTy.UNDEF && rtype != NameTy.BOOL)) 
-                    reportError(exp.row, exp.col, "Left and right sides must be boolean types under \'&&\' operator.");
+                if ((ltype != NameTy.UNDEF && ltype != NameTy.BOOL && ltype != NameTy.INT) || (rtype != NameTy.UNDEF && rtype != NameTy.BOOL && rtype != NameTy.INT)) 
+                    reportError(exp.row, exp.col, "Left and right sides must be either boolean or integer types under \'&&\' operator.");
                 type = NameTy.BOOL;
                 break;
             case OpExp.OR:
-                if ((ltype != NameTy.UNDEF && ltype != NameTy.BOOL) || (rtype != NameTy.UNDEF && rtype != NameTy.BOOL)) 
-                    reportError(exp.row, exp.col, "Left and right sides must be boolean types under \'||\' operator.");
+                if ((ltype != NameTy.UNDEF && ltype != NameTy.BOOL && ltype != NameTy.INT) || (rtype != NameTy.UNDEF && rtype != NameTy.BOOL && rtype != NameTy.INT)) 
+                reportError(exp.row, exp.col, "Left and right sides must be either boolean or integer types under \'&&\' operator.");
                 type = NameTy.BOOL;
                 break;
             default:
@@ -271,9 +274,12 @@ public class SemanticAnalyzer implements AbsynVisitor<Integer> {
     }
 
     public Integer visit(SimpleVar exp, int value, boolean flag) {
+        SimpleDec dec;
         int type;
         try {
-            type = getType(exp.name);
+            dec = (SimpleDec)getDec(exp.name);
+            type = dec.type.type;
+            exp.dec = dec;
         }
         catch (Exception e) {
             reportError(exp.row, exp.col, e.getMessage());
@@ -284,11 +290,21 @@ public class SemanticAnalyzer implements AbsynVisitor<Integer> {
     }
     
     public Integer visit(IndexVar exp, int value, boolean flag) {
-        int type;
-        type = exp.index.accept(this, value, flag);
-        
+        ArrayDec dec;
+
+        int type = exp.index.accept(this, value, flag);
         if (type != NameTy.INT) {
             reportError(exp.row, exp.col, "Integer type required for indexing.");
+        }
+
+        try {
+            dec = (ArrayDec)getDec(exp.name);
+            type = dec.type.type;
+            exp.dec = dec;
+        }
+        catch (Exception e) {
+            reportError(exp.row, exp.col, e.getMessage());
+            type = NameTy.UNDEF;
         }
 
         return type;
@@ -355,20 +371,6 @@ public class SemanticAnalyzer implements AbsynVisitor<Integer> {
             }
         }
         return false;
-    }
-
-    private int getType(String var) throws Exception {
-        Dec dec = getDec(var);
-        if (dec instanceof FunctionDec) {
-            return ((FunctionDec)dec).result.type;
-        }
-        else if (dec instanceof SimpleDec) {
-            return ((SimpleDec)dec).type.type;
-        }
-        else if (dec instanceof ArrayDec) {
-            return ((ArrayDec)dec).type.type;
-        }
-        return NameTy.VOID;
     }
 
     private Dec getDec(String var) throws Exception {
