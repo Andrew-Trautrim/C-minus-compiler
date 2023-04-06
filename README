@@ -5,24 +5,14 @@ generate an executable program called "Main".
 
 To parse a C- file like "example.cm", type 
 
-    "java -cp /usr/share/java/cup.jar:. Main example.cm" 
+    "java -cp /usr/share/java/cup.jar:. Main example.cm [-a] [-s] [-c]" 
 
-and the syntax tree will be displayed on the screen as well as any errors found within 
-the input file.
+The -a command will display the syntax tree
+The -s command will display the symbol table
+The -c command will compile the code into the Tiny Machine assembly language, provided there are no semantic errors
 
 To rebuild the parser, type "make clean" and type "make" again.
 
 Additionally, the testing folder stores several different files used to test the parser
-and how it responds to different errors. For example,
-- 1_statements.cm: contains several different valid statements like if/else, while, return, 
-and nested statements, should NOT produce any errors.
-- 2_delcarations.cm: contains both valid and invalid function and variable declarations.
-- 3_operations.cm: contains both valid and invalid use of binary operations.
-- 4_brackets.cm: contains both valid brackets and invalid brackets, such as unmatched 
-brackets, missing brackets, and missing parameters.
-- 5_everything_else.cm: contains a wide variety of cases, mostly covering complex nested 
-expressions.
-The other files are simple valid C- files that should produce no errors.
+and how it responds to different errors. 
 
-NOTE: when running these test files they should produce no more than 3 errors each, however, 
-some errors may produce multiple messages resulting in seemingly more errors which isnt the case.
