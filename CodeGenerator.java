@@ -147,6 +147,18 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         emitRM("LD", fp, ofpFO, fp, "pop frame");
         emitRO("HALT", 0, 0, 0, "");
     }
+
+    private void generateUndeclared() {
+        for (String func : prototypes.keySet()) {
+            emitBackup(prototypes.get(func));
+            prototypes.remove(func);
+            
+            emitRM("LDA", pc, 1, pc, "skip 1 line");
+            emitRO("HALT", 0, 0, 0, "function " + func + " undeclared");
+
+            emitRestore();
+        }
+    }
     
     // wrapper for post-order traversal
     public void visit(Absyn trees) {
@@ -159,6 +171,9 @@ public class CodeGenerator implements AbsynVisitor<Void> {
 
         // generate finale
         generateFinale();
+
+        // generate undeclared functions
+        generateUndeclared();
     }
  
     public Void visit(SimpleVar exp, int r, boolean isAddr) {
@@ -166,7 +181,7 @@ public class CodeGenerator implements AbsynVisitor<Void> {
             emitRM("LD", r, exp.dec.offset, exp.dec.nestLevel == 0 ? gp : fp, "load variable " + exp.name + " into reg " + r);
         }
         else if (exp.dec instanceof ArrayDec) {
-            emitRM("LDA", r, exp.dec.offset, exp.dec.nestLevel == 0 ? gp : fp, "load address of " + exp.name + "into reg" + r);
+            emitRM("LDA", r, exp.dec.offset, exp.dec.nestLevel == 0 ? gp : fp, "load address of " + exp.name + " into reg "  + r);
         }
         return null; 
     }
@@ -175,17 +190,23 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         exp.index.accept(this, r + 1, false); // load index offset to register r + 1
         checkBounds(exp, r + 1);
 
-        if (exp.dec.nestLevel == 0) { // global scope
+        if (exp.dec.isAddr) {
+            emitRM("LD", r, exp.dec.offset, exp.dec.nestLevel == 0 ? gp : fp, "load absolute address of variable " + exp.name);
+            emitRO("ADD", r + 1, r, r + 1, "add absolute value to index");
+        }
+        else if (exp.dec.nestLevel == 0) { // global scope
             emitRO("ADD", r + 1, r + 1, gp, "add gp to reg " + (r + 1));
         }
         else { // local scope
-            emitRO("ADD", r + 1, r + 1, fp, "add fp to reg " + (r + 1));
+            emitRO("ADD", r + 1, r + 1, fp, "---add fp to reg " + (r + 1));
         }
+
         // add one to offset size storage
         emitRM("LDC", r, 1, 0, "load 1 into reg " + r);
         emitRO("ADD", r + 1, r + 1, r, "add 1 to reg " + (r + 1));
 
-        emitRM("LD", r, exp.dec.offset, r + 1, "load variable " + exp.name + " into reg " + r); 
+        emitRM("LD", r, exp.dec.isAddr ? 0 : exp.dec.offset, r + 1, "load variable " + exp.name + " into reg " + r); 
+
         return null; 
     }
 
@@ -193,11 +214,10 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         emitComment("-> check bounds");
         emitRM("JGE", r, 1, pc, "skip halt");
         emitRO("HALT", 0, 0, 0, "");
-        // emitRM("LDC" , r + 1, 0, 0, "zero register " + (r + 1));
-        // emitRM("LD", r + 1, exp.dec.offset, r + 1, "load size of " + exp.name);
-        // emitRO("SUB", r + 1, r + 1, r, "compare index to size of array");
-        // emitRM("JGT", r + 1, 1, pc, "skip halt");
-        // emitRO("HALT", 0, 0, 0, "");
+        emitRM("LD", r + 1, exp.dec.offset, exp.dec.nestLevel == 0 ? gp : fp, "load size of " + exp.name);
+        emitRO("SUB", r + 1, r + 1, r, "compare index to size of array");
+        emitRM("JGT", r + 1, 1, pc, "skip halt");
+        emitRO("HALT", 0, 0, 0, "");
         emitComment("<- check bounds");
     }
 
@@ -366,17 +386,23 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         else if (exp.lhs.variable instanceof IndexVar) {
             ((IndexVar)exp.lhs.variable).index.accept(this, ac1, false); // save index to ac1 register 
             checkBounds(((IndexVar)exp.lhs.variable), ac1);
-            if (exp.lhs.variable.dec.nestLevel == 0) { // global scope
+
+            if (exp.lhs.variable.dec.isAddr) {
+                emitRM("LD", ac1 + 1, exp.lhs.variable.dec.offset, exp.lhs.variable.dec.nestLevel == 0 ? gp : fp, "load absolute address of variable " + ((IndexVar)exp.lhs.variable).name);
+                emitRO("ADD", ac1, ac1 + 1, ac1, "add absolute value to index");
+            }
+            else if (exp.lhs.variable.dec.nestLevel == 0) { // global scope
                 emitRO("ADD", ac1, ac1, gp, "add gp to reg " + ac1);
             }
             else { // local scope
                 emitRO("ADD", ac1, ac1, fp, "add fp to reg " + ac1);
             }
+
             // add one to offset size storage
             emitRM("LDC", ac1 + 1, 1, 0, "load 1 into reg " + (ac1 + 1));
             emitRO("ADD", ac1, ac1, ac1 + 1, "add 1 to reg " + ac1);
 
-            emitRM("ST", ac, exp.lhs.variable.dec.offset, ac1, "write reg " + ac + " to variable " + ((IndexVar)exp.lhs.variable).name);
+            emitRM("ST", ac, exp.lhs.variable.dec.isAddr ? 0 : exp.lhs.variable.dec.offset, ac1, "write reg " + ac + " to variable " + ((IndexVar)exp.lhs.variable).name);
         }
 
         return null; 
@@ -474,6 +500,7 @@ public class CodeGenerator implements AbsynVisitor<Void> {
 
         if (prototypes.containsKey(exp.func)) {
             emitBackup(prototypes.get(exp.func));
+            prototypes.remove(exp.func);
             
             emitRM("LDA", pc, 1, pc, "skip 1 line");
             emitRM_Abs("LDA", pc, exp.funcAddr, "go to function declaration");
@@ -484,7 +511,7 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         emitComment("-> function: " + exp.func);
         emitRM("ST", ac, retFO, fp, "save return PC");
 
-        exp.params.accept(this, 0, false);
+        exp.params.accept(this, 0, true);
         exp.body.accept(this, 0, false);
 
         emitRM("LD", pc, retFO, fp, "return to caller");
@@ -500,6 +527,7 @@ public class CodeGenerator implements AbsynVisitor<Void> {
     }
  
     public Void visit(SimpleDec exp, int value, boolean isAddr) {
+        exp.isAddr = isAddr;
         if (exp.nestLevel == 0) { // global scope
             emitComment("allocating global variable " + exp.name + " at offset " + globalOffset);
             exp.offset = globalOffset;
@@ -515,6 +543,13 @@ public class CodeGenerator implements AbsynVisitor<Void> {
     }
 
     public Void visit(ArrayDec exp, int value, boolean isAddr) { 
+        exp.isAddr = isAddr;
+        if (isAddr) {
+            emitComment("allocating array reference " + exp.name + " at offset " + frameOffset);
+            exp.offset = frameOffset;
+            frameOffset--;
+            return null;
+        }
         if (exp.nestLevel == 0) { // global scope
             globalOffset -= exp.size;
             emitComment("allocating global variable " + exp.name + "[" + exp.size + "]" + " at offset " + globalOffset);
@@ -552,7 +587,7 @@ public class CodeGenerator implements AbsynVisitor<Void> {
     public Void visit(VarDecList expList, int value, boolean isAddr) {
         while (expList != null) {
             if (expList.head != null) {
-                expList.head.accept(this, value, false);
+                expList.head.accept(this, value, isAddr);
             }
             expList = expList.tail;
         }

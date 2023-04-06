@@ -1,7 +1,11 @@
-int z[10];
+/* A program to perform selection sort on an array of 10 integers */
+
 
 int minloc(int a[], int low, int high) {
-  int i; int x; int k;
+  int i; 
+  int x; 
+  int k;
+
   k = low;
   x = a[low];
   i = low + 1;
@@ -16,7 +20,9 @@ int minloc(int a[], int low, int high) {
 }
 
 void sort(int a[], int low, int high) {
-  int i; int k;
+  int i; 
+  int k;
+
   i = low;
   while (i < high - 1) {
     int t;
@@ -29,7 +35,9 @@ void sort(int a[], int low, int high) {
 }
 
 void main(void) {
+    int z[10];
   int i;
+
   i = 0;
   while (i < 10) {
     z[i] = input();

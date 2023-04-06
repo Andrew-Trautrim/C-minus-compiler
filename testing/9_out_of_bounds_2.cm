@@ -1,0 +1,9 @@
+void main(void){
+    int a[5];
+    int b;
+
+    b = 5;
+    a[b] = 10;
+
+    output(1);
+}

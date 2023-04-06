@@ -1,0 +1,13 @@
+
+
+void test2(void);
+
+void test1(void){
+    output(1);
+}
+
+void main(void) {
+    test1();
+    test2();
+    test1();
+}

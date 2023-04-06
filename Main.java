@@ -21,10 +21,10 @@ class Main {
 
       /* Semantic Analysis */
       SemanticAnalyzer analyzer = new SemanticAnalyzer(Arrays.stream(argv).anyMatch("-s"::equals));
-      result.accept(analyzer, 0, false);
+      int err = result.accept(analyzer, 0, false);
 
       /* Code Generation */
-      if (Arrays.stream(argv).anyMatch("-c"::equals)) {
+      if (err == 0 && Arrays.stream(argv).anyMatch("-c"::equals)) {
         int dotIndex = argv[0].lastIndexOf('.');
         String filename = ((dotIndex == -1) ? argv[0] : argv[0].substring(0, dotIndex)) + ".tm";
         

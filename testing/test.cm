@@ -1,13 +1,30 @@
-void test(int a[]) {
-    a[0] = 1;
-    output(a[0]);
-    return;
+/* A program to perform selection sort on an array of 10 integers */
+
+void test(int x[]) {
+    int i;
+
+    i = 0;
+    while (i < 10) {
+        x[i] = x[i] + 1;
+        i = i + 1;
+    }
 }
 
-int main(void) {
-    int x[5];
-    
-    x[0] = 0;
+void main(void) {
+    int i;
+    int x[10];
+
+    i = 0;
+    while (i < 10) {
+        x[i] = input();
+        i = i + 1;
+    }
+
     test(x);
-    output(x[0]);
+  
+    i = 0;
+    while (i < 10) {
+        output(x[i]);
+        i = i + 1;
+    }
 }

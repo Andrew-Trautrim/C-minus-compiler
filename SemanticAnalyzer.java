@@ -7,12 +7,14 @@ public class SemanticAnalyzer implements AbsynVisitor<Integer> {
     
     final static int SPACES = 4;
 
+    private int err;
     private int scope;
     private int returnType;
     private boolean showSymbolTable;
     private ArrayList<HashMap<String, Dec>> SymbolTable;
 
     public SemanticAnalyzer(boolean showSymbolTable) {
+        this.err = 0;
         this.scope = 0;
         this.showSymbolTable = showSymbolTable;
         this.SymbolTable = new ArrayList<HashMap<String, Dec>>();
@@ -29,7 +31,7 @@ public class SemanticAnalyzer implements AbsynVisitor<Integer> {
         }
         
         decreaseScope();
-        return NameTy.VOID;
+        return this.err;
     }
 
     public Integer visit(VarDecList expList, int value, boolean flag) {
@@ -421,6 +423,7 @@ public class SemanticAnalyzer implements AbsynVisitor<Integer> {
     }
 
     private void reportError(int row, int col, String message) {
+        this.err += 1;
         System.err.println("Error in line " + (row + 1) + ", column " + (col + 1) + " : " + message); 
     }
 
