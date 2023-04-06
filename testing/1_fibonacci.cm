@@ -1,0 +1,48 @@
+int fib(int n);
+
+int prev1;
+int prev2;
+
+
+int fib(int n){
+    int fn;
+
+    if (n < 3){
+        return n;
+    }
+
+    fn = prev1 + prev2;
+    prev2 = prev1;
+    prev1 = fn;
+
+    output(fn);
+
+    return fib(n - 1);
+}
+
+void printFib(int n){
+    if (n < 1){
+        output(-1);
+    }else if (n == 1){
+        output(0);
+    }else if (n == 2){
+        output(0);
+        output(1);
+    }else{
+        output(0);
+        output(1);
+
+        fib(n);
+    }
+}
+
+void main(void){
+    int n;
+    n = input();
+
+    prev1 = 1;
+    prev2 = 0;
+
+    printFib(n);
+
+}

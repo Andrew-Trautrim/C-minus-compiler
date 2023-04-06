@@ -1,0 +1,22 @@
+
+int equation(int a, int b){
+    int out;
+
+    out = ((a+b)*b)-(a*a);
+
+    return out;
+}
+
+void main(void){
+    int a;
+    int b;
+    int sum;
+
+    a = input();
+    b = input();
+
+    sum = equation(a, b);
+
+    output(sum);
+
+}

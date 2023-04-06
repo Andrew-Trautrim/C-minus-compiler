@@ -1,0 +1,32 @@
+
+int mean(int n){
+    int a[5];
+    int iter;
+    int mean;
+
+    a[0] = input();
+    a[1] = input();
+    a[2] = input();
+    a[3] = input();
+    a[4] = input();
+
+
+    iter = 0;
+    mean = 0;
+
+    while(iter < 5){
+        mean = mean + a[iter];
+
+        iter = iter + 1;
+    }
+
+    mean = mean/5;
+
+    return mean;
+}
+
+void main(void){
+
+    output(mean());
+
+}
