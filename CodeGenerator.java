@@ -1,4 +1,6 @@
-import java.io.*;  
+import java.io.*;
+import java.util.HashMap;
+
 import absyn.*;
 
 public class CodeGenerator implements AbsynVisitor<Void> {
@@ -160,7 +162,12 @@ public class CodeGenerator implements AbsynVisitor<Void> {
     }
  
     public Void visit(SimpleVar exp, int r, boolean isAddr) {
-        emitRM("LD", r, exp.dec.offset, exp.dec.nestLevel == 0 ? gp : fp, "load variable " + exp.name + " into reg " + r);
+        if (exp.dec instanceof SimpleDec) {
+            emitRM("LD", r, exp.dec.offset, exp.dec.nestLevel == 0 ? gp : fp, "load variable " + exp.name + " into reg " + r);
+        }
+        else if (exp.dec instanceof ArrayDec) {
+            emitRM("LDA", r, exp.dec.offset, exp.dec.nestLevel == 0 ? gp : fp, "load address of " + exp.name + "into reg" + r);
+        }
         return null; 
     }
 
@@ -446,19 +453,32 @@ public class CodeGenerator implements AbsynVisitor<Void> {
     }
  
     public Void visit(FunctionDec exp, int value, boolean isAddr) {
+        int savedLoc1, savedLoc2;
 
         // TODO function prototypes
         if (exp.body instanceof NilExp) {
+            int savedLoc = emitSkip(2);
+            prototypes.put(exp.func, savedLoc);
+            exp.funcAddr = savedLoc + 1;
             return null;
         }
 
         // skip over function
-        int savedLoc1 = emitSkip(1);
+        savedLoc1 = emitSkip(1);
 
         exp.funcAddr = emitLoc;
         frameOffset = initFO;
         if (exp.func.equals("main")) { // if its the main function save its address for the finale
             mainEntry = emitLoc;
+        }
+
+        if (prototypes.containsKey(exp.func)) {
+            emitBackup(prototypes.get(exp.func));
+            
+            emitRM("LDA", pc, 1, pc, "skip 1 line");
+            emitRM_Abs("LDA", pc, exp.funcAddr, "go to function declaration");
+
+            emitRestore();
         }
 
         emitComment("-> function: " + exp.func);
@@ -471,7 +491,7 @@ public class CodeGenerator implements AbsynVisitor<Void> {
         emitComment("<- function: " + exp.func);
 
         // skip over function
-        int savedLoc2 = emitSkip(0);
+        savedLoc2 = emitSkip(0);
         emitBackup(savedLoc1);
         emitRM_Abs("LDA", pc, savedLoc2, "");
         emitRestore();
@@ -552,4 +572,6 @@ public class CodeGenerator implements AbsynVisitor<Void> {
     /* Wont be visited */
     public Void visit(NameTy exp, int value, boolean isAddr) { return null; }
     public Void visit(NilExp exp, int value, boolean isAddr) { return null; }
+
+    private HashMap<String, Integer> prototypes = new HashMap<String, Integer>();
 }

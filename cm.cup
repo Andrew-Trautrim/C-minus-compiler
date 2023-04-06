@@ -263,7 +263,7 @@ statement_list ::=          statement_list:sl statement:s
 param ::=                   type_specifier:ts ID:i
                                 {: RESULT = new SimpleDec(tsleft, tsright, ts, i); :}
                             | type_specifier:ts ID:i LSQUARE RSQUARE
-                                {: RESULT = new ArrayDec(tsleft, tsright, ts, i, -1); :} // CFG doesnt match C- spec given
+                                {: RESULT = new ArrayDec(tsleft, tsright, ts, i, 1); :} // CFG doesnt match C- spec given
                             | type_specifier:ts ID:i RSQUARE
                                 {: 
                                     parser.report_error(ileft, iright, "Invalid parameter declaration, missing \'[\'");

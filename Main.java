@@ -25,7 +25,10 @@ class Main {
 
       /* Code Generation */
       if (Arrays.stream(argv).anyMatch("-c"::equals)) {
-        CodeGenerator generator = new CodeGenerator("test.tm");
+        int dotIndex = argv[0].lastIndexOf('.');
+        String filename = ((dotIndex == -1) ? argv[0] : argv[0].substring(0, dotIndex)) + ".tm";
+        
+        CodeGenerator generator = new CodeGenerator(filename);
         generator.visit(result);
       }
     } catch (Exception e) {

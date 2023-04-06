@@ -274,12 +274,19 @@ public class SemanticAnalyzer implements AbsynVisitor<Integer> {
     }
 
     public Integer visit(SimpleVar exp, int value, boolean flag) {
-        SimpleDec dec;
-        int type;
+        int type = 0;
         try {
-            dec = (SimpleDec)getDec(exp.name);
-            type = dec.type.type;
-            exp.dec = dec;
+            Dec temp = getDec(exp.name);
+            if (temp instanceof SimpleDec) {
+                SimpleDec dec = (SimpleDec)getDec(exp.name);
+                type = dec.type.type;
+                exp.dec = dec;
+            }
+            else if (temp instanceof ArrayDec) {
+                ArrayDec dec = (ArrayDec)getDec(exp.name);
+                type = dec.type.type;
+                exp.dec = dec;
+            }
         }
         catch (Exception e) {
             reportError(exp.row, exp.col, e.getMessage());
